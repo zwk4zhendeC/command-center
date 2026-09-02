@@ -1,0 +1,12 @@
+service:
+  flush: 1
+  log_level: info
+
+pipeline:
+  inputs:
+    - name: random
+
+  outputs:
+    - name: stdout
+      match: '*'
+      format: 'json_lines'

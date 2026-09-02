@@ -1,0 +1,39 @@
+services:
+  #  nginx:
+  #    image: nginx:latest
+  #    ports:
+  #      - "80:80"
+  #      - "81:81"
+  #      - "82:82"
+  #      - "83:83"
+  #    volumes:
+  #      - /etc/nginx/conf.d:/etc/nginx/conf.d
+  #      - /etc/nginx/nginx.conf:/etc/nginx/nginx.conf
+  #      - /usr/share/nginx/html:/usr/share/nginx/html
+
+  postgres:
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: nova-boot
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d nova-boot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # Redis
+  redis:
+    image: redis
+    hostname: redis
+    command: redis-server --requirepass zwk123
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

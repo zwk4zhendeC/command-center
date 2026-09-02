@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:5.1.1   # 选择你需要的版本
+    working_dir: /fluent-bit/etc
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - FLB_LOG_LEVEL=info
+    volumes:
+      # 挂载配置文件
+      - ./fluent-bit:/fluent-bit/etc
+      # 宿主机日志目录
+      - /var/log:/var/log:ro
+      # Docker 容器日志目录
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # systemd所需的目录
+      - /etc/machine-id:/etc/machine-id:ro
+      # -  /run/log/journal:/run/log/journal
+      # 系统时区（可选）
+      - /etc/localtime:/etc/localtime:ro
+      # 系统时区（可选）
+      - /:/host:ro
+    command: >
+      /fluent-bit/bin/fluent-bit
+      -c /fluent-bit/etc/fluent-bit.yml
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.55.1
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /var/run:/var/run:ro
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /dev/disk/:/dev/disk:ro
+      # docker 通信入口
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
