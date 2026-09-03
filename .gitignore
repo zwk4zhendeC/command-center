@@ -43,6 +43,7 @@ uploadPath
 *.xml.versionsBackup
 *.swp
 *.tgz
+*.tar
 
 !*/build/*.java
 !*/build/*.html

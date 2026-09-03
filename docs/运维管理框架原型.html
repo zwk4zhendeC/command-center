@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>运维管理平台框架原型</title>
+  <style>
+    :root {
+      --sidebar: #182234;
+      --sidebar-deep: #121a29;
+      --sidebar-text: #aab5c5;
+      --primary: #3b7ddd;
+      --line: #e6eaf0;
+      --text: #263247;
+      --muted: #7f8a9b;
+      --top-height: 58px;
+      --side-width: 224px;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { color: var(--text); font: 14px/1.5 Arial, "Microsoft YaHei", sans-serif; background: #f3f6f9; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { display: grid; grid-template-columns: var(--side-width) minmax(0, 1fr); width: 100%; height: 100vh; min-height: 100%; transition: grid-template-columns .2s ease; }
+    .app.collapsed { --side-width: 66px; }
+    .sidebar { position: relative; z-index: 20; min-width: 0; min-height: 100vh; background: var(--sidebar); color: var(--sidebar-text); }
+    .brand { display: flex; align-items: center; height: var(--top-height); padding: 0 17px; border-bottom: 1px solid rgba(255,255,255,.07); background: var(--sidebar-deep); overflow: hidden; }
+    .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 6px; background: var(--primary); color: #fff; font-weight: 700; font-size: 16px; }
+    .brand-copy { min-width: 150px; margin-left: 10px; white-space: nowrap; }
+    .brand-copy strong, .brand-copy small { display: block; }
+    .brand-copy strong { color: #f6f8fb; font-size: 14px; }
+    .brand-copy small { margin-top: -1px; color: #7f8ba0; font-size: 9px; letter-spacing: 1px; }
+    .nav { padding: 14px 9px; }
+    .nav-label { height: 28px; padding: 5px 10px; overflow: hidden; color: #66748a; font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
+    .nav-item { display: flex; align-items: center; width: 100%; height: 42px; margin-bottom: 3px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: var(--sidebar-text); text-align: left; white-space: nowrap; overflow: hidden; }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .nav-item.active { background: var(--primary); color: #fff; }
+    .nav-item svg { width: 18px; height: 18px; flex: 0 0 auto; }
+    .nav-item span { margin-left: 12px; }
+    .nav-item .badge { min-width: 18px; margin-left: auto; padding: 1px 5px; border-radius: 9px; background: #e55d5d; color: #fff; font-size: 10px; text-align: center; }
+    .collapsed .brand { padding-left: 17px; }
+    .collapsed .brand-copy, .collapsed .nav-label, .collapsed .nav-item span, .collapsed .nav-item .badge { display: none; }
+    .collapsed .nav-item { justify-content: center; padding: 0; }
+    .workspace { display: grid; grid-template-rows: var(--top-height) minmax(0, 1fr); min-width: 0; height: 100vh; }
+    .topbar { position: relative; z-index: 10; display: flex; align-items: center; gap: 15px; padding: 0 19px; border-bottom: 1px solid var(--line); background: #fff; }
+    .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #647185; }
+    .icon-btn:hover { border-color: #dce3ec; background: #f7f9fc; color: var(--primary); }
+    .icon-btn svg { width: 19px; height: 19px; }
+    .breadcrumbs { display: flex; align-items: center; min-width: 160px; color: #8a95a5; font-size: 12px; }
+    .breadcrumbs strong { color: #354157; font-weight: 500; }
+    .breadcrumbs i { margin: 0 8px; color: #bcc4cf; font-style: normal; }
+    .top-spacer { flex: 1; }
+    .global-search { position: relative; width: 220px; }
+    .global-search svg { position: absolute; top: 9px; left: 10px; width: 16px; color: #96a0ae; }
+    .global-search input { width: 100%; height: 34px; padding: 0 10px 0 34px; border: 1px solid #dfe4eb; border-radius: 5px; outline: none; background: #f8fafc; color: #3c485c; }
+    .global-search input:focus { border-color: var(--primary); background: #fff; }
+    .notice { position: relative; }
+    .notice::after { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border: 2px solid #fff; border-radius: 50%; background: #ef6262; content: ""; }
+    .user { position: relative; }
+    .user-trigger { display: flex; align-items: center; gap: 8px; padding: 4px 7px; border: 0; border-radius: 5px; background: transparent; color: #435067; }
+    .user-trigger:hover { background: #f5f7fa; }
+    .avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #dce9fb; color: #326fc8; font-size: 12px; font-weight: 700; }
+    .user-menu { position: absolute; top: 43px; right: 0; display: none; width: 138px; padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; box-shadow: 0 8px 24px rgba(31,43,61,.12); }
+    .user-menu.open { display: block; }
+    .user-menu button { width: 100%; padding: 8px 10px; border: 0; border-radius: 4px; background: transparent; color: #526075; text-align: left; }
+    .user-menu button:hover { background: #f4f7fa; }
+    .content { position: relative; min-width: 0; min-height: 0; background: #f4f7fa; }
+    .content iframe { display: block; width: 100%; height: 100%; border: 0; background: #f4f7fa; }
+    .loading { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: #f4f7fa; color: #8290a3; font-size: 12px; transition: opacity .18s ease; }
+    .loading.hidden { pointer-events: none; opacity: 0; }
+    .mask { display: none; }
+    .toast { position: fixed; right: 24px; bottom: 22px; z-index: 40; display: none; padding: 10px 15px; border-radius: 5px; background: #182234; color: #fff; box-shadow: 0 5px 18px rgba(19,29,45,.22); }
+    @media (max-width: 760px) {
+      .app { display: block; }
+      .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 224px; transform: translateX(-100%); transition: transform .2s ease; }
+      .app.mobile-open .sidebar { transform: translateX(0); }
+      .mask { position: fixed; inset: 0; z-index: 15; display: none; background: rgba(13,21,34,.42); }
+      .app.mobile-open .mask { display: block; }
+      .workspace { width: 100%; }
+      .global-search { display: none; }
+      .breadcrumbs { flex: 1; }
+      .top-spacer { display: none; }
+      .user-name { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">CC</div><div class="brand-copy"><strong>运维管理平台</strong><small>COMMAND CENTER</small></div></div>
+      <nav class="nav" aria-label="主菜单">
+        <div class="nav-label">工作台</div>
+        <button class="nav-item" data-title="工作台" onclick="openPlaceholder(this, '工作台')" title="工作台"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>工作台</span></button>
+        <div class="nav-label">运维与资产</div>
+        <button class="nav-item active" data-title="资产台账" onclick="openInventory(this)" title="资产台账"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>资产台账</span></button>
+        <button class="nav-item" data-title="监控中心" onclick="openPlaceholder(this, '监控中心')" title="监控中心"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg><span>监控中心</span></button>
+        <button class="nav-item" data-title="告警管理" onclick="openPlaceholder(this, '告警管理')" title="告警管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>告警管理</span><b class="badge">5</b></button>
+        <div class="nav-label">项目交付</div>
+        <button class="nav-item" data-title="项目管理" onclick="openPlaceholder(this, '项目管理')" title="项目管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h7l2 2h9v10H3z"/><path d="M3 7V5h7l2 2"/></svg><span>项目管理</span></button>
+        <button class="nav-item" data-title="工单中心" onclick="openPlaceholder(this, '工单中心')" title="工单中心"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>工单中心</span><b class="badge">14</b></button>
+        <div class="nav-label">系统</div>
+        <button class="nav-item" data-title="系统设置" onclick="openPlaceholder(this, '系统设置')" title="系统设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.8-1L14.4 3h-4l-.4 3.1a8 8 0 0 0-1.8 1l-2.4-1-2 3.4L5.8 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 1.8 1l.4 3.1h4l.4-3.1a8 8 0 0 0 1.8-1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1z"/></svg><span>系统设置</span></button>
+      </nav>
+    </aside>
+
+    <div class="mask" onclick="closeMobileMenu()"></div>
+    <section class="workspace">
+      <header class="topbar">
+        <button class="icon-btn" onclick="toggleSidebar()" title="展开或收起菜单" aria-label="展开或收起菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div class="breadcrumbs"><span>运维与资产</span><i>/</i><strong id="currentTitle">资产台账</strong></div>
+        <div class="top-spacer"></div>
+        <label class="global-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input placeholder="全局搜索" onkeydown="if(event.key==='Enter')showToast('正在搜索：'+this.value)"></label>
+        <button class="icon-btn notice" onclick="showToast('你有 5 条未读告警')" title="通知" aria-label="通知"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button>
+        <div class="user"><button class="user-trigger" onclick="toggleUserMenu()"><span class="avatar">管</span><span class="user-name">管理员</span><span>⌄</span></button><div id="userMenu" class="user-menu"><button onclick="showToast('个人中心')">个人中心</button><button onclick="showToast('退出登录')">退出登录</button></div></div>
+      </header>
+      <main class="content">
+        <div id="loading" class="loading">正在加载资产台账...</div>
+        <iframe id="contentFrame" src="运维指挥台原型.html" title="资产台账" onload="frameLoaded()"></iframe>
+      </main>
+    </section>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const app = document.querySelector('#app');
+    const frame = document.querySelector('#contentFrame');
+    const loading = document.querySelector('#loading');
+
+    function toggleSidebar() {
+      if (window.innerWidth <= 760) app.classList.toggle('mobile-open');
+      else app.classList.toggle('collapsed');
+    }
+    function closeMobileMenu() { app.classList.remove('mobile-open'); }
+    function activate(item, title) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelector('#currentTitle').textContent = title;
+      closeMobileMenu();
+    }
+    function openInventory(item) {
+      activate(item, '资产台账');
+      loading.textContent = '正在加载资产台账...';
+      loading.classList.remove('hidden');
+      frame.removeAttribute('srcdoc');
+      frame.src = '运维指挥台原型.html';
+      frame.title = '资产台账';
+    }
+    function openPlaceholder(item, title) {
+      activate(item, title);
+      loading.classList.add('hidden');
+      frame.removeAttribute('src');
+      frame.srcdoc = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><style>*{box-sizing:border-box}body{margin:0;background:#f4f7fa;color:#657287;font:14px Arial,'Microsoft YaHei',sans-serif}.empty{height:100vh;display:grid;place-items:center}.content{text-align:center}.icon{width:46px;height:46px;margin:auto auto 13px;border:1px solid #dfe5ec;border-radius:6px;background:#fff;display:grid;place-items:center;color:#91a0b3;font-size:20px}h1{margin:0 0 7px;color:#334056;font-size:18px;letter-spacing:0}p{margin:0;font-size:12px}</style></head><body><div class="empty"><div class="content"><div class="icon">□</div><h1>${title}</h1><p>该页面将在后续用户故事中设计</p></div></div></body></html>`;
+      frame.title = title;
+    }
+    function frameLoaded() { loading.classList.add('hidden'); }
+    function toggleUserMenu() { document.querySelector('#userMenu').classList.toggle('open'); }
+    function showToast(message) {
+      const el = document.querySelector('#toast');
+      el.textContent = message; el.style.display = 'block';
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => el.style.display = 'none', 1800);
+    }
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.user')) document.querySelector('#userMenu').classList.remove('open');
+    });
+    window.addEventListener('message', event => {
+      if (event.source !== frame.contentWindow || !event.data || event.data.type !== 'prototype:navigation') return;
+      const breadcrumb = document.querySelector('.breadcrumbs');
+      breadcrumb.querySelector('span').textContent = event.data.section || '运维与资产';
+      document.querySelector('#currentTitle').textContent = event.data.title || '资产台账';
+    });
+    window.addEventListener('resize', () => { if (window.innerWidth > 760) app.classList.remove('mobile-open'); });
+  </script>
+</body>
+</html>

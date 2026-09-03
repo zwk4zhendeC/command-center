@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>资产台账原型</title>
+  <style>
+    :root {
+      --bg: #f4f7fa; --surface: #fff; --ink: #182235; --muted: #788598;
+      --line: #e4e9f0; --blue: #2f73da; --blue-soft: #edf4ff;
+      --green: #19966c; --green-soft: #e9f7f1; --orange: #d58b18;
+      --red: #d75858; --shadow: 0 1px 3px rgba(22, 34, 53, .04);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 Arial, "Microsoft YaHei", sans-serif; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1440px; margin: auto; padding: 34px 42px 52px; }
+    .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 25px; }
+    .eyebrow { color: #8b96a6; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+    h1 { margin: 7px 0 3px; font-size: 27px; letter-spacing: 0; }
+    .page-head p { margin: 0; color: var(--muted); font-size: 13px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 13px; border: 1px solid #d9e0e9; border-radius: 5px; background: #fff; color: #48566b; }
+    .btn:hover { border-color: var(--blue); color: var(--blue); }
+    .btn.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
+    .panel { border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: var(--shadow); }
+    .main-panel { min-width: 0; padding: 18px; }
+    .manage-tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .manage-tab { position: relative; min-width: 112px; padding: 2px 12px 12px; border: 0; background: transparent; color: #788598; }
+    .manage-tab strong { margin-left: 5px; font-size: 12px; }
+    .manage-tab.active { color: var(--blue); font-weight: 600; }
+    .manage-tab.active::after { position: absolute; right: 12px; bottom: -1px; left: 12px; height: 2px; background: var(--blue); content: ""; }
+    .toolbar { display: flex; align-items: center; gap: 9px; }
+    .search-wrap { position: relative; width: min(330px, 100%); }
+    .search-wrap svg { position: absolute; top: 9px; left: 11px; width: 16px; color: #929dad; }
+    .control { width: 100%; height: 36px; padding: 0 11px; border: 1px solid #dce2ea; border-radius: 5px; outline: none; background: #fff; color: #334056; }
+    .search-wrap .control { padding-left: 35px; }
+    .control:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(47, 115, 218, .1); }
+    .filter-btn.active { border-color: #a9c8f4; background: var(--blue-soft); color: var(--blue); }
+    .filter-panel { display: none; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 14px 16px; margin-top: 15px; padding: 16px; border: 1px solid #e7ebf1; border-radius: 6px; background: #f9fbfd; }
+    .filter-panel.open { display: grid; }
+    .field label { display: block; margin-bottom: 6px; color: #68768a; font-size: 12px; }
+    .filter-actions { display: flex; align-items: flex-end; gap: 8px; }
+    .active-filter { display: none; align-items: center; justify-content: space-between; margin-top: 13px; padding: 8px 11px; border-radius: 5px; background: var(--blue-soft); color: #45658f; font-size: 12px; }
+    .active-filter.show { display: flex; }
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; min-width: 760px; border-collapse: collapse; }
+    th { padding: 11px 10px; background: #fafbfd; color: #8490a1; font-size: 12px; font-weight: 500; text-align: left; }
+    td { padding: 13px 10px; border-top: 1px solid #edf0f4; color: #46546a; }
+    tbody tr:hover { background: #fafcff; }
+    .asset { display: flex; align-items: center; gap: 10px; }
+    .asset-icon { display: grid; place-items: center; width: 31px; height: 31px; flex: 0 0 auto; border-radius: 5px; background: #eef4fc; color: #4877b8; font-size: 12px; }
+    .asset b { display: block; color: #283449; font-size: 13px; }
+    .asset small { display: block; margin-top: 2px; color: #99a3b1; font-size: 11px; }
+    .status { display: inline-block; padding: 3px 8px; border-radius: 4px; background: var(--green-soft); color: var(--green); font-size: 11px; }
+    .status.warning { background: #fff5df; color: var(--orange); }
+    .status.offline { background: #fceeee; color: var(--red); }
+    .management { color: #526176; font-size: 12px; }
+    .management::before { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--green); content: ""; }
+    .management.unmanaged::before { background: #a5afbc; }
+    .link { border: 0; background: none; color: var(--blue); font-size: 12px; }
+    .empty { padding: 48px 10px; color: #929dac; text-align: center; }
+    .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 17px; color: #7b8798; font-size: 12px; }
+    .page-btn { min-width: 31px; height: 31px; border: 1px solid #dfe4eb; border-radius: 4px; background: #fff; color: #59677b; }
+    .page-btn.active { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .page-btn:disabled { cursor: default; opacity: .4; }
+    .page-size { width: 88px; height: 31px; border: 1px solid #dfe4eb; border-radius: 4px; background: #fff; color: #59677b; }
+    .breakdown { padding: 18px; }
+    .aside-title { margin-bottom: 16px; }
+    .aside-title h2 { margin: 0; font-size: 15px; }
+    .legend { display: flex; gap: 18px; margin-bottom: 18px; color: #778498; font-size: 11px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 8px; height: 8px; border-radius: 2px; }
+    .legend b { color: #263349; font-size: 13px; }
+    .chart-item { margin: 0 -7px 15px; padding: 7px; border: 1px solid transparent; border-radius: 5px; }
+    .chart-item.active { border-color: #bdd3f2; background: #f7faff; }
+    .chart-head { display: flex; justify-content: space-between; margin-bottom: 7px; color: #526075; font-size: 12px; }
+    .chart-head b { color: #283449; font-size: 13px; }
+    .segmented-bar { display: flex; width: 100%; height: 12px; overflow: hidden; border-radius: 3px; background: #edf0f4; }
+    .bar-segment { min-width: 3px; height: 100%; padding: 0; border: 0; border-radius: 0; }
+    .bar-segment.managed { background: var(--blue); }
+    .bar-segment.unmanaged { background: #aeb8c5; }
+    .bar-segment:hover { filter: brightness(.9); }
+    .chart-values { display: flex; justify-content: space-between; margin-top: 5px; color: #909baa; font-size: 10px; }
+    .chart-empty { padding: 30px 8px; color: #929dac; text-align: center; font-size: 12px; }
+    .ratio { margin-top: 17px; }
+    .ratio-head { display: flex; align-items: baseline; justify-content: space-between; color: #748095; font-size: 12px; }
+    .ratio-head strong { color: var(--green); font-size: 20px; }
+    .ratio-bar { height: 7px; margin-top: 8px; overflow: hidden; border-radius: 8px; background: #e9edf2; }
+    .ratio-bar span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--green); transition: width .2s ease; }
+    .ratio small { display: block; margin-top: 7px; color: #98a2b1; font-size: 11px; }
+    .toast { position: fixed; right: 26px; bottom: 24px; display: none; padding: 11px 16px; border-radius: 5px; background: #172033; color: #fff; box-shadow: 0 5px 18px rgba(23,32,51,.22); }
+    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .breakdown { order: -1; } .filter-panel { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 620px) { .shell { padding: 22px 13px; } .page-head { gap: 15px; } .page-head h1 { font-size: 23px; } .toolbar { flex-wrap: wrap; } .search-wrap { width: 100%; } .filter-panel { grid-template-columns: 1fr; } .pagination { flex-wrap: wrap; justify-content: center; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="page-head">
+      <div><div class="eyebrow">ASSET INVENTORY</div><h1>资产台账</h1><p>统一管理主机、应用、集群、域名等项目资产。</p></div>
+      <button class="btn primary" onclick="toast('新增资产功能将在下一步设计')">+ 新增资产</button>
+    </header>
+
+    <div class="layout">
+      <section class="panel main-panel">
+        <div class="manage-tabs" role="tablist" aria-label="纳管状态">
+          <button class="manage-tab active" data-manage="managed" onclick="switchManageTab('managed')" role="tab">已纳管<strong id="managedTabCount">0</strong></button>
+          <button class="manage-tab" data-manage="unmanaged" onclick="switchManageTab('unmanaged')" role="tab">未纳管<strong id="unmanagedTabCount">0</strong></button>
+        </div>
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+            <input id="search" class="control" placeholder="搜索资产名称、IP 或标签" oninput="applyFilters()">
+          </div>
+          <button id="detailButton" class="btn filter-btn" onclick="toggleFilters()">详细筛选⌄</button>
+          <button class="btn" onclick="resetFilters()">重置</button>
+        </div>
+
+        <div id="filterPanel" class="filter-panel">
+          <div class="field"><label for="typeFilter">资产类型</label><select id="typeFilter" class="control" onchange="applyFilters()"><option value="">全部类型</option><option>主机</option><option>应用</option><option>集群</option><option>域名</option></select></div>
+          <div class="field"><label for="statusFilter">运行状态</label><select id="statusFilter" class="control" onchange="applyFilters()"><option value="">全部状态</option><option value="normal">运行正常</option><option value="warning">需关注</option><option value="offline">离线</option></select></div>
+          <div class="field"><label for="manageFilter">纳管状态</label><select id="manageFilter" class="control" onchange="applyFilters()"><option value="managed" selected>已纳管</option><option value="unmanaged">未纳管</option></select></div>
+          <div class="field"><label for="projectFilter">所属项目</label><select id="projectFilter" class="control" onchange="applyFilters()"><option value="">全部项目</option><option>统一支付平台</option><option>数据中台</option><option>运营管理台</option></select></div>
+        </div>
+
+        <div id="activeFilter" class="active-filter"><span id="filterSummary"></span><button class="btn ghost" onclick="resetFilters()">清除全部</button></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>资产名称</th><th>地址</th><th>运行状态</th><th>纳管状态</th><th>所属项目</th><th>操作</th></tr></thead>
+            <tbody id="assetRows"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="totalText">共 0 条</span>
+          <select id="pageSize" class="page-size" onchange="changePageSize()"><option value="5">5 条/页</option><option value="10">10 条/页</option><option value="20">20 条/页</option></select>
+          <button id="prevPage" class="page-btn" onclick="goPage(currentPage-1)" aria-label="上一页">‹</button>
+          <div id="pageNumbers"></div>
+          <button id="nextPage" class="page-btn" onclick="goPage(currentPage+1)" aria-label="下一页">›</button>
+        </div>
+      </section>
+
+      <aside class="panel breakdown">
+        <div class="aside-title"><h2>资产构成</h2></div>
+        <div class="legend"><span><i style="background:var(--blue)"></i>已纳管 <b id="managedLegendCount">0</b></span><span><i style="background:#aeb8c5"></i>未纳管 <b id="unmanagedLegendCount">0</b></span></div>
+        <div id="typeCharts"></div>
+        <div class="ratio"><div class="ratio-head"><span>纳管比例</span><strong id="ratioValue">0%</strong></div><div class="ratio-bar"><span id="ratioBar"></span></div><small id="ratioDescription">当前筛选范围内暂无资产</small></div>
+      </aside>
+    </div>
+  </main>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const assets = [
+      ['prod-api-gateway-01','主机','上海一区','10.24.8.16','normal','managed','统一支付平台'],
+      ['payment-service','应用','生产集群','svc/payment','normal','managed','统一支付平台'],
+      ['k8s-prod-cluster','集群','上海一区','10.24.0.0/16','warning','managed','数据中台'],
+      ['console.company.com','域名','公网','203.0.113.8','normal','managed','运营管理台'],
+      ['prod-db-primary-01','主机','北京二区','10.18.4.21','normal','managed','数据中台'],
+      ['order-service','应用','生产集群','svc/order','warning','managed','统一支付平台'],
+      ['test-worker-03','主机','广州一区','10.31.7.43','offline','unmanaged',''],
+      ['k8s-test-cluster','集群','北京二区','10.18.0.0/16','normal','unmanaged',''],
+      ['openapi.company.com','域名','公网','203.0.113.26','normal','managed','统一支付平台'],
+      ['report-service','应用','数据集群','svc/report','normal','managed','数据中台'],
+      ['legacy-host-07','主机','上海一区','10.24.9.77','warning','unmanaged',''],
+      ['ops.company.com','域名','公网','203.0.113.42','normal','managed','运营管理台'],
+      ['redis-prod-cluster','集群','上海一区','redis/primary','normal','managed','统一支付平台'],
+      ['message-worker','应用','生产集群','svc/message','offline','unmanaged',''],
+      ['backup-node-02','主机','北京二区','10.18.6.12','normal','managed','数据中台'],
+      ['preview.company.com','域名','公网','203.0.113.55','warning','unmanaged','']
+    ];
+    let currentPage = 1;
+    let filtered = [];
+
+    function toggleFilters() {
+      const panel = document.querySelector('#filterPanel');
+      const button = document.querySelector('#detailButton');
+      panel.classList.toggle('open');
+      button.classList.toggle('active');
+      button.textContent = panel.classList.contains('open') ? '收起筛选⌃' : '详细筛选⌄';
+    }
+
+    function applyFilters(resetPage = true) {
+      if (resetPage) currentPage = 1;
+      const keyword = document.querySelector('#search').value.trim().toLowerCase();
+      const type = document.querySelector('#typeFilter').value;
+      const status = document.querySelector('#statusFilter').value;
+      const manage = document.querySelector('#manageFilter').value;
+      const project = document.querySelector('#projectFilter').value;
+      const contextualAssets = assets.filter(item =>
+        (!keyword || item.join(' ').toLowerCase().includes(keyword)) &&
+        (!type || item[1] === type) && (!status || item[4] === status) &&
+        (!project || item[6] === project)
+      );
+      filtered = contextualAssets.filter(item => !manage || item[5] === manage);
+      renderComposition(contextualAssets);
+      syncAside(type, manage);
+      renderTable();
+      renderFilterSummary(keyword, type, status, manage, project);
+    }
+
+    function renderComposition(items) {
+      const types = [
+        ['主机', '主机'], ['应用', '应用服务'], ['集群', '集群'], ['域名', '域名']
+      ];
+      const managedCount = items.filter(item => item[5] === 'managed').length;
+      const unmanagedCount = items.filter(item => item[5] === 'unmanaged').length;
+      const total = items.length;
+      const ratio = total ? Math.round(managedCount / total * 100) : 0;
+
+      document.querySelector('#managedTabCount').textContent = managedCount;
+      document.querySelector('#unmanagedTabCount').textContent = unmanagedCount;
+      document.querySelector('#managedLegendCount').textContent = managedCount;
+      document.querySelector('#unmanagedLegendCount').textContent = unmanagedCount;
+      document.querySelector('#ratioValue').textContent = `${ratio}%`;
+      document.querySelector('#ratioBar').style.width = `${ratio}%`;
+      document.querySelector('#ratioDescription').textContent = total
+        ? `当前筛选范围共 ${total} 项资产，${managedCount} 项已纳入台账`
+        : '当前筛选范围内暂无资产';
+
+      const charts = types.map(([type, label]) => {
+        const typeItems = items.filter(item => item[1] === type);
+        if (!typeItems.length) return '';
+        const managed = typeItems.filter(item => item[5] === 'managed').length;
+        const unmanaged = typeItems.length - managed;
+        const managedWidth = managed / typeItems.length * 100;
+        const unmanagedWidth = 100 - managedWidth;
+        return `<div class="chart-item" data-type="${type}"><div class="chart-head"><span>${label}</span><b>${typeItems.length}</b></div><div class="segmented-bar"><button class="bar-segment managed" style="width:${managedWidth}%" onclick="filterBySegment('${type}','managed')" title="已纳管 ${managed}" aria-label="筛选${label}中的已纳管资产"></button><button class="bar-segment unmanaged" style="width:${unmanagedWidth}%" onclick="filterBySegment('${type}','unmanaged')" title="未纳管 ${unmanaged}" aria-label="筛选${label}中的未纳管资产"></button></div><div class="chart-values"><span>已纳管 ${managed}</span><span>未纳管 ${unmanaged}</span></div></div>`;
+      }).join('');
+      document.querySelector('#typeCharts').innerHTML = charts || '<div class="chart-empty">当前筛选条件下暂无资产构成数据</div>';
+    }
+
+    function renderTable() {
+      const pageSize = Number(document.querySelector('#pageSize').value);
+      const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+      currentPage = Math.min(currentPage, pageCount);
+      const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+      const statusMap = { normal: ['运行正常',''], warning: ['需关注','warning'], offline: ['离线','offline'] };
+      document.querySelector('#assetRows').innerHTML = pageRows.length ? pageRows.map(item => {
+        const status = statusMap[item[4]];
+        const action = item[1] === '主机'
+          ? `<button class="link" onclick="openHostDetail('${item[0]}')">查看</button>`
+          : `<button class="link" onclick="toast('${item[1]}资产详情将在后续设计')">查看</button>`;
+        return `<tr><td><div class="asset"><span class="asset-icon">${item[1].slice(0,1)}</span><div><b>${item[0]}</b><small>${item[1]} · ${item[2]}</small></div></div></td><td>${item[3]}</td><td><span class="status ${status[1]}">${status[0]}</span></td><td><span class="management ${item[5] === 'unmanaged' ? 'unmanaged' : ''}">${item[5] === 'managed' ? '已纳管' : '未纳管'}</span></td><td>${item[6] || '未分配'}</td><td>${action}</td></tr>`;
+      }).join('') : '<tr><td colspan="6"><div class="empty">没有符合当前筛选条件的资产</div></td></tr>';
+      document.querySelector('#totalText').textContent = `共 ${filtered.length} 条`;
+      document.querySelector('#prevPage').disabled = currentPage === 1;
+      document.querySelector('#nextPage').disabled = currentPage === pageCount;
+      document.querySelector('#pageNumbers').innerHTML = Array.from({length: pageCount}, (_, i) => `<button class="page-btn ${i + 1 === currentPage ? 'active' : ''}" onclick="goPage(${i + 1})">${i + 1}</button>`).join(' ');
+    }
+
+    function renderFilterSummary(keyword, type, status, manage, project) {
+      const labels = [];
+      if (keyword) labels.push(`关键词：${keyword}`);
+      if (type) labels.push(`类型：${type}`);
+      if (status) labels.push(`状态：${{normal:'运行正常',warning:'需关注',offline:'离线'}[status]}`);
+      if (manage) labels.push(`纳管：${manage === 'managed' ? '已纳管' : '未纳管'}`);
+      if (project) labels.push(`项目：${project}`);
+      document.querySelector('#activeFilter').classList.toggle('show', labels.length > 0);
+      document.querySelector('#filterSummary').textContent = labels.length ? `当前筛选 · ${labels.join(' / ')}` : '';
+    }
+
+    function switchManageTab(manage) {
+      document.querySelector('#manageFilter').value = manage;
+      applyFilters();
+    }
+
+    function filterBySegment(type, manage) {
+      document.querySelector('#typeFilter').value = type;
+      document.querySelector('#manageFilter').value = manage;
+      applyFilters();
+    }
+
+    function syncAside(type, manage) {
+      document.querySelectorAll('.chart-item').forEach(el => el.classList.toggle('active', el.dataset.type === type));
+      document.querySelectorAll('.manage-tab').forEach(el => {
+        const active = el.dataset.manage === manage;
+        el.classList.toggle('active', active);
+        el.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    function resetFilters() {
+      document.querySelector('#search').value = '';
+      ['typeFilter','statusFilter','manageFilter','projectFilter'].forEach(id => document.querySelector(`#${id}`).value = '');
+      document.querySelector('#manageFilter').value = 'managed';
+      applyFilters();
+    }
+
+    function goPage(page) { currentPage = page; applyFilters(false); }
+    function changePageSize() { currentPage = 1; renderTable(); }
+    function openHostDetail(hostname) { location.href = `主机资产详情原型.html?host=${encodeURIComponent(hostname)}`; }
+    function toast(message) { const el = document.querySelector('#toast'); el.textContent = message; el.style.display = 'block'; clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => el.style.display = 'none', 1800); }
+    window.parent.postMessage({type:'prototype:navigation',section:'运维与资产',title:'资产台账'},'*');
+    applyFilters();
+  </script>
+</body>
+</html>
