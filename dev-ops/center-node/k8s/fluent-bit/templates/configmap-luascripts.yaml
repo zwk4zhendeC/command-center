@@ -1,0 +1,15 @@
+{{- if or .Values.luaScripts .Values.hotReload.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fluent-bit.fullname" . }}-luascripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fluent-bit.labels" . | nindent 4 }}
+data:
+{{- $files := .Files.Glob "settings/scripts/*.lua" }}
+{{- range $path, $file := $files }}
+  {{ base $path }}: |
+{{ toString $file | nindent 4 }}
+{{- end }}
+{{- end -}}

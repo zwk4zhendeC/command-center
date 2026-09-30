@@ -1,0 +1,25 @@
+# pipeline:
+#   inputs:
+#     # systemd日志采集，只采集告警级别及以上的日志
+#     - name: systemd
+#       tag: systemd.host
+#       systemd_filter:
+#         - _SYSTEMD_UNIT=systemd-networkd.service
+#         - _SYSTEMD_UNIT=ssh.service
+#         - _SYSTEMD_UNIT=systemd-logind.service
+#       read_from_tail: on
+#     # systemd采集内核日志
+#     - name: systemd
+#       tag: systemd.host.kernel
+#       systemd_filter:
+#         - _TRANSPORT=kernel
+#       read_from_tail: on
+#   filters:
+#       # 添加主机日志标识
+#     - name: modify
+#       match: 'systemd.host.kernel'
+#       add: SYSLOG_IDENTIFIER dmesg
+#     - name: modify
+#       match: 'systemd.host'
+#       add: asset_type host
+#       add: object_name ${HOST_IP}

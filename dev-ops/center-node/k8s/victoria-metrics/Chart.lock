@@ -1,0 +1,6 @@
+dependencies:
+- name: quench-common
+  repository: oci://ghcr.io/quenchworks/charts
+  version: 0.0.9
+digest: sha256:1aaee16173d5efd6098d5477d2f610ee5ff0a1c4d2dc043fb05e838920cd8520
+generated: "2026-09-28T10:29:51.303139809Z"

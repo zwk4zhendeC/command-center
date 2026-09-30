@@ -1,0 +1,124 @@
+service:
+  daemon: off
+  flush: 1
+  log_level: info
+  http_server: on
+  http_listen: 0.0.0.0
+  http_port: 2020
+  health_check: on
+
+includes:
+  - /fluent-bit/etc/conf/conf.d/*.yml
+
+pipeline:
+  inputs:
+    # - name: dummy
+    #   tag: kube.service.*
+    #   dummy: '{"message": "custom dummy"}'
+    # k8s容器日志采集
+    - name: tail
+      path: /var/log/containers/*.log
+      # exclude_path: /var/log/containers/postgresql-*.log
+      path_key: filename
+      multiline.parser: docker, cri
+      tag: kube.*
+      mem_buf_limit: 5MB
+      skip_long_lines: on
+    # systemd日志采集，只采集告警级别及以上的日志
+    - name: systemd
+      tag: systemd.host
+      systemd_filter:
+        - _SYSTEMD_UNIT=systemd-networkd.service
+        - _SYSTEMD_UNIT=ssh.service
+        - _SYSTEMD_UNIT=systemd-logind.service
+      read_from_tail: off
+    # systemd采集内核日志
+    - name: systemd
+      tag: systemd.host.kernel
+      systemd_filter:
+        - _TRANSPORT=kernel
+      read_from_tail: on
+  filters:
+    - name: kubernetes
+      match: kube.*
+      merge_log: on
+      keep_log: off
+      k8s-logging.parser: on
+      k8s-logging.exclude: on
+      annotations: on
+
+    # Java多行处理器
+    - name: multiline
+      match: 'java-*'
+      multiline.key_content: _msg
+      multiline.parser: java
+      mode: parser
+      flush_ms: 2000
+
+    # Python多行处理器  
+    - name: multiline
+      match: 'python-*'
+      multiline.key_content: _msg
+      multiline.parser: python
+      mode: parser
+      flush_ms: 2000
+
+    # Go多行处理器
+    - name: multiline
+      match: 'go-*'
+      multiline.key_content: _msg
+      multiline.parser: go
+      mode: parser
+      flush_ms: 2000
+
+    # 重命名日志内容字段为_msg，方便多行处理器使用
+    - name: modify
+      match: '*'
+      rename: 
+        - log _msg
+        - MESSAGE _msg
+        - msg _msg
+      add: node_id '-'
+
+    # 重命名Kubernetes字段
+    - name: lua
+      match: "*kube.*"
+      script: /fluent-bit/scripts/k8s_fields_mapping.lua
+      call: k8s_fields_mapping
+
+    # SystemD字段映射（按照日志分类文档）
+    - name: lua
+      match: systemd*
+      script: /fluent-bit/scripts/systemd_fields_mapping.lua
+      call: map_systemd_fields
+
+    # 为k8s日志提取日志级别
+    - name: lua
+      match: "*kube.*"
+      script: /fluent-bit/scripts/extract_log_level.lua
+      call: level_by_content
+      
+    # 为二进制日志提取日志级别
+    - name: lua
+      match: "*host-app*"
+      script: /fluent-bit/scripts/extract_log_level.lua
+      call: level_by_content
+      
+    - name: lua
+      match: "*"
+      script: /fluent-bit/scripts/all.lua
+      call: all_end
+
+  outputs:
+    - name: http
+      match: "*"
+      host: victoria-logs-server.default.svc.cluster.local
+      port: 9428
+      uri: /insert/jsonline
+      format: json_lines
+      json_date_key: "@timestamp"
+      json_date_format: iso8601
+      header: "Content-Type application/json"
+      tls: off
+    # - name: stdout
+    #   match: "*"

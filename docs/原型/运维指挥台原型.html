@@ -27,8 +27,14 @@
     .layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
     .panel { border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: var(--shadow); }
     .main-panel { min-width: 0; padding: 18px; }
-    .manage-tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
-    .manage-tab { position: relative; min-width: 112px; padding: 2px 12px 12px; border: 0; background: transparent; color: #788598; }
+    .asset-tabs { display: inline-flex; gap: 2px; margin-bottom: 16px; padding: 3px; border: 1px solid #dce2ea; border-radius: 5px; background: #f7f9fc; }
+    .asset-tab { display: inline-flex; min-width: 62px; align-items: center; justify-content: center; gap: 3px; height: 30px; padding: 0 10px; border: 0; border-radius: 3px; background: transparent; color: #687384; font-size: 12px; }
+    .asset-tab::before { display: none; }
+    .asset-tab strong { margin-left: 1px; color: #8b96a6; font-size: 11px; font-weight: 500; }
+    .asset-tab.active { background: #fff; color: var(--blue); font-weight: 600; box-shadow: 0 0 0 1px #c9dcf7; }
+    .asset-tab.active strong { color: var(--blue); }
+    .manage-tabs { display: flex; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .manage-tab { position: relative; min-width: 112px; padding: 2px 12px 10px; border: 0; background: transparent; color: #788598; }
     .manage-tab strong { margin-left: 5px; font-size: 12px; }
     .manage-tab.active { color: var(--blue); font-weight: 600; }
     .manage-tab.active::after { position: absolute; right: 12px; bottom: -1px; left: 12px; height: 2px; background: var(--blue); content: ""; }
@@ -61,6 +67,7 @@
     .management::before { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--green); content: ""; }
     .management.unmanaged::before { background: #a5afbc; }
     .link { border: 0; background: none; color: var(--blue); font-size: 12px; }
+    .link + .link { margin-left: 10px; }
     .empty { padding: 48px 10px; color: #929dac; text-align: center; }
     .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 17px; color: #7b8798; font-size: 12px; }
     .page-btn { min-width: 31px; height: 31px; border: 1px solid #dfe4eb; border-radius: 4px; background: #fff; color: #59677b; }
@@ -100,7 +107,7 @@
   <main class="shell">
     <header class="page-head">
       <div><div class="eyebrow">ASSET INVENTORY</div><h1>资产台账</h1><p>统一管理主机、应用、集群、域名等项目资产。</p></div>
-      <button class="btn primary" onclick="toast('新增资产功能将在下一步设计')">+ 新增资产</button>
+      <button class="btn primary" onclick="toast('新增资产')">+ 新增资产</button>
     </header>
 
     <div class="layout">
@@ -108,6 +115,12 @@
         <div class="manage-tabs" role="tablist" aria-label="纳管状态">
           <button class="manage-tab active" data-manage="managed" onclick="switchManageTab('managed')" role="tab">已纳管<strong id="managedTabCount">0</strong></button>
           <button class="manage-tab" data-manage="unmanaged" onclick="switchManageTab('unmanaged')" role="tab">未纳管<strong id="unmanagedTabCount">0</strong></button>
+        </div>
+        <div class="asset-tabs" role="tablist" aria-label="资产类型">
+          <button class="asset-tab" data-type="主机" data-icon="▣" onclick="switchTypeTab('主机')" role="tab">主机<strong id="hostTabCount">0</strong></button>
+          <button class="asset-tab" data-type="应用" data-icon="◇" onclick="switchTypeTab('应用')" role="tab">应用<strong id="appTabCount">0</strong></button>
+          <button class="asset-tab" data-type="集群" data-icon="✣" onclick="switchTypeTab('集群')" role="tab">集群<strong id="clusterTabCount">0</strong></button>
+          <button class="asset-tab" data-type="域名" data-icon="◎" onclick="switchTypeTab('域名')" role="tab">域名<strong id="domainTabCount">0</strong></button>
         </div>
         <div class="toolbar">
           <div class="search-wrap">
@@ -121,14 +134,13 @@
         <div id="filterPanel" class="filter-panel">
           <div class="field"><label for="typeFilter">资产类型</label><select id="typeFilter" class="control" onchange="applyFilters()"><option value="">全部类型</option><option>主机</option><option>应用</option><option>集群</option><option>域名</option></select></div>
           <div class="field"><label for="statusFilter">运行状态</label><select id="statusFilter" class="control" onchange="applyFilters()"><option value="">全部状态</option><option value="normal">运行正常</option><option value="warning">需关注</option><option value="offline">离线</option></select></div>
-          <div class="field"><label for="manageFilter">纳管状态</label><select id="manageFilter" class="control" onchange="applyFilters()"><option value="managed" selected>已纳管</option><option value="unmanaged">未纳管</option></select></div>
           <div class="field"><label for="projectFilter">所属项目</label><select id="projectFilter" class="control" onchange="applyFilters()"><option value="">全部项目</option><option>统一支付平台</option><option>数据中台</option><option>运营管理台</option></select></div>
         </div>
 
         <div id="activeFilter" class="active-filter"><span id="filterSummary"></span><button class="btn ghost" onclick="resetFilters()">清除全部</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>资产名称</th><th>地址</th><th>运行状态</th><th>纳管状态</th><th>所属项目</th><th>操作</th></tr></thead>
+            <thead><tr><th>资产名称</th><th>地址</th><th>运行状态</th><th>所属项目</th><th>操作</th></tr></thead>
             <tbody id="assetRows"></tbody>
           </table>
         </div>
@@ -172,6 +184,7 @@
     ];
     let currentPage = 1;
     let filtered = [];
+    let currentManage = 'managed';
 
     function toggleFilters() {
       const panel = document.querySelector('#filterPanel');
@@ -186,18 +199,17 @@
       const keyword = document.querySelector('#search').value.trim().toLowerCase();
       const type = document.querySelector('#typeFilter').value;
       const status = document.querySelector('#statusFilter').value;
-      const manage = document.querySelector('#manageFilter').value;
       const project = document.querySelector('#projectFilter').value;
       const contextualAssets = assets.filter(item =>
         (!keyword || item.join(' ').toLowerCase().includes(keyword)) &&
         (!type || item[1] === type) && (!status || item[4] === status) &&
         (!project || item[6] === project)
       );
-      filtered = contextualAssets.filter(item => !manage || item[5] === manage);
+      filtered = contextualAssets.filter(item => item[5] === currentManage);
       renderComposition(contextualAssets);
-      syncAside(type, manage);
+      syncAside(type, currentManage);
       renderTable();
-      renderFilterSummary(keyword, type, status, manage, project);
+      renderFilterSummary(keyword, type, status, currentManage, project);
     }
 
     function renderComposition(items) {
@@ -226,7 +238,7 @@
         const unmanaged = typeItems.length - managed;
         const managedWidth = managed / typeItems.length * 100;
         const unmanagedWidth = 100 - managedWidth;
-        return `<div class="chart-item" data-type="${type}"><div class="chart-head"><span>${label}</span><b>${typeItems.length}</b></div><div class="segmented-bar"><button class="bar-segment managed" style="width:${managedWidth}%" onclick="filterBySegment('${type}','managed')" title="已纳管 ${managed}" aria-label="筛选${label}中的已纳管资产"></button><button class="bar-segment unmanaged" style="width:${unmanagedWidth}%" onclick="filterBySegment('${type}','unmanaged')" title="未纳管 ${unmanaged}" aria-label="筛选${label}中的未纳管资产"></button></div><div class="chart-values"><span>已纳管 ${managed}</span><span>未纳管 ${unmanaged}</span></div></div>`;
+        return `<div class="chart-item" data-type="${type}"><div class="chart-head"><span>${label}</span><b>${typeItems.length}</b></div><div class="segmented-bar"><span class="bar-segment managed" style="width:${managedWidth}%" title="已纳管 ${managed}"></span><span class="bar-segment unmanaged" style="width:${unmanagedWidth}%" title="未纳管 ${unmanaged}"></span></div><div class="chart-values"><span>已纳管 ${managed}</span><span>未纳管 ${unmanaged}</span></div></div>`;
       }).join('');
       document.querySelector('#typeCharts').innerHTML = charts || '<div class="chart-empty">当前筛选条件下暂无资产构成数据</div>';
     }
@@ -239,11 +251,15 @@
       const statusMap = { normal: ['运行正常',''], warning: ['需关注','warning'], offline: ['离线','offline'] };
       document.querySelector('#assetRows').innerHTML = pageRows.length ? pageRows.map(item => {
         const status = statusMap[item[4]];
-        const action = item[1] === '主机'
+        const viewAction = item[1] === '主机'
           ? `<button class="link" onclick="openHostDetail('${item[0]}')">查看</button>`
-          : `<button class="link" onclick="toast('${item[1]}资产详情将在后续设计')">查看</button>`;
-        return `<tr><td><div class="asset"><span class="asset-icon">${item[1].slice(0,1)}</span><div><b>${item[0]}</b><small>${item[1]} · ${item[2]}</small></div></div></td><td>${item[3]}</td><td><span class="status ${status[1]}">${status[0]}</span></td><td><span class="management ${item[5] === 'unmanaged' ? 'unmanaged' : ''}">${item[5] === 'managed' ? '已纳管' : '未纳管'}</span></td><td>${item[6] || '未分配'}</td><td>${action}</td></tr>`;
-      }).join('') : '<tr><td colspan="6"><div class="empty">没有符合当前筛选条件的资产</div></td></tr>';
+          : item[1] === '应用'
+            ? `<button class="link" onclick="openServiceDetail('${item[0]}')">查看</button>`
+            : `<button class="link" onclick="toast('${item[1]}资产详情将在后续设计')">查看</button>`;
+        const editAction = `<button class="link" onclick="toast('编辑${item[1]}资产')">编辑</button>`;
+        const manageAction = item[5] === 'unmanaged' ? `<button class="link" onclick="toast('已发起纳管')">纳管</button>` : '';
+        return `<tr><td><div class="asset"><span class="asset-icon">${item[1].slice(0,1)}</span><div><b>${item[0]}</b><small>${item[1]} · ${item[2]}</small></div></div></td><td>${item[3]}</td><td><span class="status ${status[1]}">${status[0]}</span></td><td>${item[6] || '未分配'}</td><td>${viewAction}${editAction}${manageAction}</td></tr>`;
+      }).join('') : '<tr><td colspan="5"><div class="empty">没有符合当前筛选条件的资产</div></td></tr>';
       document.querySelector('#totalText').textContent = `共 ${filtered.length} 条`;
       document.querySelector('#prevPage').disabled = currentPage === 1;
       document.querySelector('#nextPage').disabled = currentPage === pageCount;
@@ -255,25 +271,28 @@
       if (keyword) labels.push(`关键词：${keyword}`);
       if (type) labels.push(`类型：${type}`);
       if (status) labels.push(`状态：${{normal:'运行正常',warning:'需关注',offline:'离线'}[status]}`);
-      if (manage) labels.push(`纳管：${manage === 'managed' ? '已纳管' : '未纳管'}`);
       if (project) labels.push(`项目：${project}`);
       document.querySelector('#activeFilter').classList.toggle('show', labels.length > 0);
       document.querySelector('#filterSummary').textContent = labels.length ? `当前筛选 · ${labels.join(' / ')}` : '';
     }
 
     function switchManageTab(manage) {
-      document.querySelector('#manageFilter').value = manage;
+      currentManage = manage;
       applyFilters();
     }
 
-    function filterBySegment(type, manage) {
+    function switchTypeTab(type) {
       document.querySelector('#typeFilter').value = type;
-      document.querySelector('#manageFilter').value = manage;
       applyFilters();
     }
 
     function syncAside(type, manage) {
       document.querySelectorAll('.chart-item').forEach(el => el.classList.toggle('active', el.dataset.type === type));
+      document.querySelectorAll('.asset-tab').forEach(el => {
+        const active = el.dataset.type === type;
+        el.classList.toggle('active', active);
+        el.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
       document.querySelectorAll('.manage-tab').forEach(el => {
         const active = el.dataset.manage === manage;
         el.classList.toggle('active', active);
@@ -283,16 +302,19 @@
 
     function resetFilters() {
       document.querySelector('#search').value = '';
-      ['typeFilter','statusFilter','manageFilter','projectFilter'].forEach(id => document.querySelector(`#${id}`).value = '');
-      document.querySelector('#manageFilter').value = 'managed';
+      ['typeFilter','statusFilter','projectFilter'].forEach(id => document.querySelector(`#${id}`).value = '');
+      currentManage = 'managed';
+      document.querySelector('#typeFilter').value = '主机';
       applyFilters();
     }
 
     function goPage(page) { currentPage = page; applyFilters(false); }
     function changePageSize() { currentPage = 1; renderTable(); }
-    function openHostDetail(hostname) { location.href = `主机资产详情原型.html?host=${encodeURIComponent(hostname)}`; }
+      function openHostDetail(hostname) { location.href = `主机资产详情原型.html?host=${encodeURIComponent(hostname)}`; }
+      function openServiceDetail(serviceName) { location.href = `服务详情原型.html?service=${encodeURIComponent(serviceName)}`; }
     function toast(message) { const el = document.querySelector('#toast'); el.textContent = message; el.style.display = 'block'; clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => el.style.display = 'none', 1800); }
     window.parent.postMessage({type:'prototype:navigation',section:'运维与资产',title:'资产台账'},'*');
+    document.querySelector('#typeFilter').value = '主机';
     applyFilters();
   </script>
 </body>

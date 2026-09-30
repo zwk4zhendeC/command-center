@@ -1,0 +1,11 @@
+# pipeline:
+#   inputs:
+#     # k8s容器日志采集
+#     - name: tail
+#       path: /var/log/containers/*.log
+#       # exclude_path: /var/log/containers/postgresql-*.log
+#       path_key: filename
+#       multiline.parser: docker, cri
+#       tag: kube.service.*
+#       mem_buf_limit: 5MB
+#       skip_long_lines: on
