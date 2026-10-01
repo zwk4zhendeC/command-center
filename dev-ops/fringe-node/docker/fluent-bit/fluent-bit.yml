@@ -18,6 +18,14 @@ parsers:
 
 pipeline:
   inputs:
+    - name: systemd
+      tag: systemd.app.wp-editor
+      systemd_filter:
+        - _SYSTEMD_UNIT=mihomo.service
+        - _SYSTEMD_UNIT=systemd-networkd.service
+        - _SYSTEMD_UNIT=ssh.service
+        - _SYSTEMD_UNIT=systemd-logind.service
+      read_from_tail: on
     # 密码服务日志
     - name: tail
       path: /host/var/lib/docker/containers/*/*.log
@@ -26,6 +34,8 @@ pipeline:
       skip_long_lines: on
       tag: docker.app.*
       parser: docker
+#    - name: cpu
+#      tag: my_cpu
 
   filters:
     # 添加容器名信息
@@ -34,12 +44,12 @@ pipeline:
       script: ./script/docker-utils.lua
       call: extract_container_name
 
-    #    # 只保留容器名=vaultwarden和caddy的
-    #    - name: grep
-    #      match: 'docker.app.*'
-    #      logical_op: or
-    #      regex:
-    #        - container_name dev-ops-redis-1
+    # 只保留容器名=vaultwarden和caddy的
+    - name: grep
+      match: 'docker.app.*'
+      logical_op: or
+      regex:
+        - container_name node-exporter
 
     - name: parser
       match: docker.*
@@ -63,8 +73,13 @@ pipeline:
   outputs:
     - name: stdout
       match: "*"
-#    - name: tcp
-#      match: "*"
-#      host: ${CENTRE_HOST_IP}
-#      port: 19002
-#      format: json_lines
+    - name: http
+      match: "*"
+      host: ${CENTRE_HOST_IP}
+      port: 30429
+      uri: /insert/jsonline
+      format: json_lines
+      json_date_key: "@timestamp"
+      json_date_format: iso8601
+      header: "Content-Type application/json"
+      tls: off

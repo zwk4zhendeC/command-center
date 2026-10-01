@@ -1,11 +1,17 @@
 # Default values for prometheus-node-exporter.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+# Prometheus scrape service annotation flag
+prometheusScrape: true
+
 image:
-  registry: dysec-docker-alpha.corp.dy-sec.com
+  registry: quay.io
   repository: prometheus/node-exporter
   # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
-  tag: "v1.9.1-alpha.1"
+  tag: "v1.10.2"
+  # Use the distroless image variant.
+  distroless: false
   pullPolicy: IfNotPresent
   digest: ""
 
@@ -30,11 +36,10 @@ global:
   #   imagePullSecrets:
   #   - pullSecret1
   #   - pullSecret2
-  imagePullSecrets: 
-  - name: nexus-alpha
+  imagePullSecrets: []
   #
   # Allow parent charts to override registry hostname
-  imageRegistry: dysec-docker-alpha.corp.dy-sec.com
+  imageRegistry: ""
 
 # Configure kube-rbac-proxy. When enabled, creates a kube-rbac-proxy to protect the node-exporter http endpoint.
 # The requests are served through the same service but requests are HTTPS.
@@ -45,8 +50,8 @@ kubeRBACProxy:
     # VARIABLE: value
   image:
     registry: quay.io
-    repository: prometheus/kube-rbac-proxy
-    tag: v0.19.0-alpha.1
+    repository: brancz/kube-rbac-proxy
+    tag: v0.23.0
     sha: ""
     pullPolicy: IfNotPresent
 
@@ -62,6 +67,8 @@ kubeRBACProxy:
 
   # Specify the port used for the Node exporter container (upstream port)
   port: 8100
+  # Host/interface prefix for --secure-listen-address (for example ":" or "$(POD_IP):")
+  listenHost: ":"
   # Specify the name of the container port
   portName: http
   # Configure a hostPort. If true, hostPort will be enabled in the container and set to service.port.
@@ -73,13 +80,17 @@ kubeRBACProxy:
   # Configure a hostPort. If true, hostPort will be enabled in the container and set to proxyEndpointsPort.
   enableProxyEndpointsHostPort: false
 
-  resources: 
-    limits:
-     cpu: 100m
-     memory: 64Mi
-    requests:
-     cpu: 10m
-     memory: 32Mi
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #  cpu: 100m
+    #  memory: 64Mi
+    # requests:
+    #  cpu: 10m
+    #  memory: 32Mi
 
   ## Additional volume mounts in the kube-rbac-proxy container
   ## See extraVolumes below
@@ -133,14 +144,14 @@ service:
   ## Name of the service port. Sets the port name of the main container (NE) as well.
   portName: metrics
   ## Port number for service type NodePort
-  nodePort: 30100
+  nodePort: null
 
   ## If true, node exporter will listen on all interfaces
   listenOnAllInterfaces: true
 
   ## Additional annotations and labels for the service
-  annotations:
-    prometheus.io/scrape: "true"
+  annotations: {}
+
   labels: {}
 
   ## Dual stack settings for the service
@@ -326,17 +337,17 @@ updateStrategy:
   rollingUpdate:
     maxUnavailable: 1
 
-resources: 
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  limits:
-    cpu: 200m
-    memory: 50Mi
-  requests:
-    cpu: 100m
-    memory: 30Mi
+  # limits:
+  #   cpu: 200m
+  #   memory: 50Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 30Mi
 
 # Specify the container restart policy passed to the Node Export container
 # Possible Values: Always (default)|OnFailure|Never
@@ -374,7 +385,12 @@ rbac:
 endpoints: []
 
 # Expose the service to the host network
-hostNetwork: true
+hostNetwork: false
+
+# hostUsers should be `true` or `~` if hostNetwork is true
+# for more information on the limitations of hostUsers
+# see https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/#limitations
+hostUsers: ~
 
 # Share the host process ID namespace
 hostPID: true
@@ -404,7 +420,7 @@ hostSysFsMount:
 
 ## Assign a group of affinity scheduling rules
 ## The default nodeAffinity excludes Fargate nodes and virtual kubelets from scheduling
-## unless overriden by hard node affinity set in the field.
+## unless overridden by hard node affinity set in the field.
 affinity: {}
 #   nodeAffinity:
 #     requiredDuringSchedulingIgnoredDuringExecution:
@@ -431,6 +447,11 @@ daemonsetAnnotations: {}
 
 ## set to true to add the release label so scraping of the servicemonitor with kube-prometheus-stack works out of the box
 releaseLabel: false
+
+# DNS policy for prometheus-node-exporter pods
+# When hostNetwork is true, you typically want "Default" or "ClusterFirstWithHostNet"
+# Ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
+dnsPolicy: ""
 
 # Custom DNS configuration to be added to prometheus-node-exporter pods
 dnsConfig: {}
@@ -472,9 +493,11 @@ terminationMessageParams:
 
 ## Additional container arguments
 ##
-extraArgs: []
-#   - --collector.diskstats.ignored-devices=^(ram|loop|fd|(h|s|v)d[a-z]|nvme\\d+n\\d+p)\\d+$
-#   - --collector.textfile.directory=/run/prometheus
+extraArgs:
+  - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/containerd/.+|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+  - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
+# - --collector.diskstats.ignored-devices=^(ram|loop|fd|(h|s|v)d[a-z]|nvme\\d+n\\d+p)\\d+$
+# - --collector.textfile.directory=/run/prometheus
 
 ## Additional mounts from the host to node-exporter container
 ##
@@ -499,7 +522,7 @@ secrets: []
 
 ## Override the deployment namespace
 ##
-namespaceOverride: "default"
+namespaceOverride: ""
 
 ## Additional containers for export metrics to text file; fields image,imagePullPolicy,securityContext take default value from main container
 ##
@@ -529,6 +552,28 @@ sidecarHostVolumeMounts: []
 ## Additional InitContainers to initialize the pod
 ##
 extraInitContainers: []
+
+## Additional InitContainer to fix hostfile permissions required for some exporters. All fixes are disabled by default.
+##
+permissionInitContainer:
+  image:
+    registry: quay.io
+    repository: prometheus/busybox
+    tag: latest
+    sha: ""
+    pullPolicy: IfNotPresent
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
+  fixes:
+    # Fixes /sys/devices/virtual/powercap/*/energy_uj
+    # Collector enabled by default
+    rapl: false
+    # Fixes /proc/slabinfo
+    # Collector disabled by default
+    slabinfo: false
+  extraCommands: []
 
 ## Liveness probe
 ##
@@ -570,13 +615,13 @@ verticalPodAutoscaler:
   # controlledValues: RequestsAndLimits
 
   # Define the max allowed resources for the pod
-  maxAllowed: 
-    cpu: 200m
-    memory: 100Mi
+  maxAllowed: {}
+  # cpu: 200m
+  # memory: 100Mi
   # Define the min allowed resources for the pod
-  minAllowed: 
-    cpu: 200m
-    memory: 100Mi
+  minAllowed: {}
+  # cpu: 200m
+  # memory: 100Mi
 
   # updatePolicy:
     # Specifies minimal number of replicas which need to be alive for VPA Updater to attempt pod eviction

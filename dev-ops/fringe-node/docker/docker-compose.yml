@@ -5,10 +5,15 @@ services:
     image: fluent/fluent-bit:5.1.1   # 选择你需要的版本
     working_dir: /fluent-bit/etc
     restart: always
+    labels:
+      app.name: "fluent-bit"
+      zwk-label: "19032"
     env_file:
       - .env
     environment:
       - FLB_LOG_LEVEL=info
+    ports:
+      - "2021:2021"
     volumes:
       # 挂载配置文件
       - ./fluent-bit:/fluent-bit/etc
@@ -44,3 +49,51 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.10.2
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    ports:
+      - "9100:9100"
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+
+  victoria-logs:
+    container_name: victoria-logs
+    image: victoriametrics/victoria-logs:v1.43.0
+    ports:
+      - "30429:9428"
+    # 数据存储目录,按需开启
+    volumes:
+      - logs_data:/storage
+    command:
+      - --envflag.enable
+      - --envflag.prefix=VLOGS_
+      - --http.shutdownDelay=15s
+      - --httpListenAddr=:9428
+      - --loggerFormat=json
+      - --retentionPeriod=15d
+      - --storageDataPath=/storage
+    environment:
+      - TZ=Asia/Shanghai
+    # 添加健康检查
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:9428/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  logs_data:

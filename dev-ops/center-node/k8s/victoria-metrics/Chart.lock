@@ -1,6 +1,6 @@
 dependencies:
-- name: quench-common
-  repository: oci://ghcr.io/quenchworks/charts
-  version: 0.0.9
-digest: sha256:1aaee16173d5efd6098d5477d2f610ee5ff0a1c4d2dc043fb05e838920cd8520
-generated: "2026-09-28T10:29:51.303139809Z"
+- name: victoria-metrics-common
+  repository: oci://ghcr.io/victoriametrics/helm-charts
+  version: 0.3.15
+digest: sha256:98442d5a197ba18dff949bc8d41853b20924289cf24337a5c55c5666da30679a
+generated: "2026-07-02T11:42:36.35437803Z"

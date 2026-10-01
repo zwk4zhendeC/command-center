@@ -54,6 +54,16 @@ release: {{ .Release.Name }}
 {{/*
 Selector labels
 */}}
+{{/*
+Pod labels: the common labels without helm.sh/chart. That label carries the chart version, so
+including it in the pod template restarts the DaemonSet on every chart upgrade, on every node,
+even when nothing about the workload changed.
+*/}}
+{{- define "prometheus-node-exporter.podLabels" }}
+{{- $podLabels := (include "prometheus-node-exporter.labels" . | fromYaml) }}
+{{- omit $podLabels "helm.sh/chart" | toYaml }}
+{{- end }}
+
 {{- define "prometheus-node-exporter.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "prometheus-node-exporter.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
@@ -79,15 +89,15 @@ The image to use
 {{- fail "image.sha forbidden. Use image.digest instead" }}
 {{- else if .Values.image.digest }}
 {{- if .Values.global.imageRegistry }}
-{{- printf "%s/%s:%s@%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
+{{- printf "%s/%s:%s%s@%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) (ternary "-distroless" "" .Values.image.distroless) .Values.image.digest }}
 {{- else }}
-{{- printf "%s/%s:%s@%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
+{{- printf "%s/%s:%s%s@%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) (ternary "-distroless" "" .Values.image.distroless) .Values.image.digest }}
 {{- end }}
 {{- else }}
 {{- if .Values.global.imageRegistry }}
-{{- printf "%s/%s:%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
+{{- printf "%s/%s:%s%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) (ternary "-distroless" "" .Values.image.distroless) }}
 {{- else }}
-{{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
+{{- printf "%s/%s:%s%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) (ternary "-distroless" "" .Values.image.distroless) }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -202,8 +212,8 @@ labelValueLengthLimit: {{ . }}
 {{- end }}
 
 {{/*
-The default node affinity to exclude 
-- AWS Fargate 
+The default node affinity to exclude
+- AWS Fargate
 - Azure virtual nodes
 */}}
 {{- define "prometheus-node-exporter.defaultAffinity" -}}
@@ -212,11 +222,11 @@ nodeAffinity:
     nodeSelectorTerms:
     - matchExpressions:
       - key: eks.amazonaws.com/compute-type
-        operator: NotIn
+        operator: NotIn # codespell:ignore
         values:
         - fargate
       - key: type
-        operator: NotIn
+        operator: NotIn # codespell:ignore
         values:
         - virtual-kubelet
 {{- end -}}

@@ -1,29 +1,58 @@
-Quenchworks VictoriaMetrics is installed as {{ include "quench-common.fullname" . }}.
+{{- if .Values.printNotes }}
+{{- if .Values.server.enabled }}
+{{- $ctx := dict "helm" . "appKey" "server" "style" "plain" }}
+{{- $fullname := include "vm.plain.fullname" $ctx }}
+{{- $ns := include "vm.namespace" $ctx }}
+The VictoriaMetrics write api can be accessed via port {{ .Values.server.service.servicePort | default (include "vm.port.from.flag" (dict "flag" (include "vm.addr.primary" .Values.server.http) "default" "8428")) }} on the following DNS name from within your cluster:
+    {{ include "vm.fqdn" $ctx }}
 
-The Prometheus-compatible HTTP API is reachable inside the cluster at:
+Metrics Ingestion:
+  Get the Victoria Metrics service URL by running these commands in the same shell:
 
-  http://{{ include "quench-common.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+{{- if contains "NodePort" .Values.server.service.type }}
+    export NODE_PORT=$(kubectl get --namespace {{ $ns }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ $fullname }})
+    export NODE_IP=$(kubectl get nodes --namespace {{ $ns }} -o jsonpath="{.items[0].status.addresses[0].address}")
+    echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.server.service.type }}
+    NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+      You can watch the status of by running 'kubectl get svc --namespace {{ $ns }} -w {{ $fullname }}'
 
-Health:
+    export SERVICE_IP=$(kubectl get svc --namespace {{ $ns }} {{ $fullname }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    echo http://$SERVICE_IP:{{ .Values.server.service.servicePort | default (include "vm.port.from.flag" (dict "flag" (include "vm.addr.primary" .Values.server.http) "default" "8428")) }}
+{{- else if contains "ClusterIP"  .Values.server.service.type }}
+    export POD_NAME=$(kubectl get pods --namespace {{ $ns }} -l "app.kubernetes.io/component={{ include "vm.app.name" $ctx }}" -l "app.kubernetes.io/instance={{ include "vm.release" $ctx }}" -o jsonpath="{.items[0].metadata.name}")
+    kubectl --namespace {{ $ns }} port-forward $POD_NAME {{ .Values.server.service.servicePort | default (include "vm.port.from.flag" (dict "flag" (include "vm.addr.primary" .Values.server.http) "default" "8428")) }}
+{{- end }}
 
-  curl http://{{ include "quench-common.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/health    # -> OK
+  Write URL inside the kubernetes cluster:
+    {{ include "vm.url" $ctx }}/<protocol-specific-write-endpoint>
 
-Ingest (Prometheus remote_write):
+  All supported write endpoints can be found at https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#how-to-import-time-series-data
 
-  remote_write:
-    - url: http://{{ include "quench-common.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/api/v1/write
+  E.g: for Prometheus:
+    {{ include "vm.url" $ctx }}/api/v1/write
 
-Import a sample in Prometheus text exposition format, then query it back:
+{{- if .Values.server.scrape.enabled }}
 
-  curl -d 'quench_metric 123' 'http://{{ include "quench-common.fullname" . }}:{{ .Values.service.port }}/api/v1/import/prometheus'
-  curl 'http://{{ include "quench-common.fullname" . }}:{{ .Values.service.port }}/api/v1/query?query=quench_metric'
-  curl 'http://{{ include "quench-common.fullname" . }}:{{ .Values.service.port }}/api/v1/query_range?query=quench_metric&start=-5m&step=30s'
+Metrics Scrape:
+  Pull-based scrapes are enabled
+  Scrape config can be displayed by running this command::
+    {{- if eq .Values.server.scrape.configMap "" }}
+    kubectl get cm {{ $fullname }}-scrapeconfig -n {{ $ns }}
+    {{- else }}
+    kubectl get cm .Values.server.scrape.configMap -n {{ $ns }}
+    {{- end }}
 
-NOTE: VictoriaMetrics ships with no authentication. This is for internal use behind
-the NetworkPolicy, which is the trust boundary. There is no Secret to manage.
+  The target’s information is accessible via api:
+    Inside cluster:
+      {{ include "vm.url" $ctx }}/targets
+    Outside cluster:
+      You need to port-forward service (see instructions above) and call
+      http://<service-host-port>/targets
+{{- end }}
 
-The image is pinned by digest and signed. Verify it:
-
-  cosign verify {{ .Values.image.repository }} \
-    --certificate-identity-regexp 'https://github.com/quenchworks/.+' \
-    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+Read Data:
+  The following URL can be used as the datasource URL in Grafana::
+    {{ include "vm.url" $ctx }}
+{{- end }}
+{{- end }}

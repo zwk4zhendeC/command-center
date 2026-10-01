@@ -1,46 +1,46 @@
 annotations:
   artifacthub.io/category: monitoring-logging
   artifacthub.io/changes: |
-    - kind: changed
-      description: "VictoriaMetrics 1.153.0."
-  artifacthub.io/images: |
-    - name: victoriametrics
-      image: ghcr.io/quenchworks/images/victoriametrics@sha256:f4fa0ea581874fbe6d4c39c7534c73c3324e5f181d723354e5fab6ae0ebbebd4
-  artifacthub.io/license: MIT
+    - bump version of VM components to [v1.153.0](https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/v1.153.0)
+  artifacthub.io/license: Apache-2.0
   artifacthub.io/links: |
-    - name: source
-      url: https://github.com/quenchworks/charts
-    - name: image
-      url: https://github.com/quenchworks/images
-  artifacthub.io/operator: "false"
-  artifacthub.io/prerelease: "false"
-  artifacthub.io/signKey: |
-    fingerprint: keyless (cosign / Sigstore)
-    url: https://github.com/quenchworks/.github/blob/main/SECURITY.md
+    - name: Sources
+      url: https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-operator
+    - name: Charts repo
+      url: https://victoriametrics.github.io/helm-charts/
+    - name: Docs
+      url: https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/
+    - name: Changelog
+      url: https://docs.victoriametrics.com/helm/victoria-metrics-single/changelog/
+    - name: App Changelog
+      url: https://docs.victoriametrics.com/victoriametrics/changelog/
+  artifacthub.io/readme: |
+    # VictoriaMetrics Single Helm chart
+
+    Chart documentation is available [here](https://docs.victoriametrics.com/helm/victoria-metrics-single/).
+    Changelog is [here](https://docs.victoriametrics.com/helm/victoria-metrics-single/changelog/).
 apiVersion: v2
-appVersion: 1.153.0
+appVersion: v1.153.0
 dependencies:
-- name: quench-common
-  repository: oci://ghcr.io/quenchworks/charts
-  version: 0.0.9
-description: Fast, cost-efficient time-series database that speaks PromQL and Prometheus
-  remote_write. Hardened by QuenchWorks as a minimal, nonroot, 0-CVE image, cosign-signed
-  and pinned by digest.
-home: https://quench-works.com
-icon: https://raw.githubusercontent.com/quenchworks/.github/main/profile/assets/chart-icon.png
+- name: victoria-metrics-common
+  repository: oci://ghcr.io/victoriametrics/helm-charts
+  version: 0.3.*
+description: VictoriaMetrics Single version - high-performance, cost-effective and
+  scalable TSDB, long-term remote storage for Prometheus
 keywords:
 - victoriametrics
+- vmsingle
+- single
+- monitoring
+- kubernetes
+- observability
 - tsdb
 - metrics
-- monitoring
-- observability
-maintainers:
-- email: info@quench-works.com
-  name: QuenchWorks
-  url: https://github.com/quenchworks
-name: victoriametrics
+- metricsql
+- timeseries
+kubeVersion: '>=1.25.0-0'
+name: victoria-metrics-single
 sources:
-- https://github.com/quenchworks/charts
-- https://github.com/VictoriaMetrics/VictoriaMetrics
+- https://github.com/VictoriaMetrics/helm-charts
 type: application
-version: 0.0.19
+version: 0.48.0
