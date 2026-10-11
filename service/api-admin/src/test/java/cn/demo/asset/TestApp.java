@@ -2,9 +2,13 @@ package cn.demo.asset;
 
 import cn.demo.NovaBootApplication;
 import cn.demo.asset.log.FluentBitConfigService;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
 
 //@SpringBootTest(classes = NovaBootApplication.class)
 public class TestApp {
@@ -33,19 +37,15 @@ public class TestApp {
 
     @Test
     public void t1() {
-        System.out.println(hnt(7, '左', '右', '中'));
+        String json= """
+                {
+                    "a":"123"
+                }
+                """;
+        JSONObject root = JSON.parseObject(json);
+        System.out.println(root.get("a") instanceof String);
     }
 
-    int i = 1;
-
-    public int hnt(int n, char form, char to, char other) {
-        if (n == 0) return 0;
-        int a = hnt(n - 1, form, other, to);
-        System.out.println(i + ":" + form + "-->" + to);
-        i++;
-        int b = hnt(n - 1, other, to, form);
-        return a + b + 1;
-    }
 /**
  fn hnt(n, form,to,other) {
  if (n == 0) return 0;

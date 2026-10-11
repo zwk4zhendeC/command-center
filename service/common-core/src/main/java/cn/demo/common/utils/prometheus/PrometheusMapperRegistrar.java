@@ -57,7 +57,7 @@ public class PrometheusMapperRegistrar
                 };
         scanner.addIncludeFilter(new AnnotationTypeFilter(PrometheusMapper.class));
 
-        PromMapperFactory factory = beanFactory.getBean(PromMapperFactory.class);
+//        PromMapperFactory factory = beanFactory.getBean(PromMapperFactory.class);
         String[] basePackages = (String[]) attributes.get("basePackages");
         if (basePackages == null || basePackages.length == 0) {
             throw new IllegalArgumentException("At least one Prometheus mapper base package is required");
@@ -91,7 +91,7 @@ public class PrometheusMapperRegistrar
                 // Bean 类型仍声明为接口，便于 Spring 按接口类型注入；实例由 Supplier 返回 JDK 代理。
                 RootBeanDefinition definition = new RootBeanDefinition(mapperType);
                 definition.setTargetType(mapperType);
-                definition.setInstanceSupplier(() -> factory.createMapper(mapperType));
+                definition.setInstanceSupplier(() -> beanFactory.getBean(PromMapperFactory.class).createMapper(mapperType));
                 registry.registerBeanDefinition(beanName, definition);
             }
         }

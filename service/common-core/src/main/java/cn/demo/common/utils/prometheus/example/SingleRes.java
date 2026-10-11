@@ -16,5 +16,5 @@ public class SingleRes {
     private String hostIp;
 
     @PromValue(type = ValueType.SAMPLE)
-    SampleValue data;
+    private SampleValue data;
 }
