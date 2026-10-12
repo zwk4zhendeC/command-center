@@ -31,6 +31,8 @@ public class PromMapperFactory {
 
     @Autowired
     private InstantQueryHandler instantQueryHandler;
+    @Autowired
+    private RangeQueryHandler rangeQueryHandler;
 
     /**
      * 为指定接口创建代理实例。
@@ -62,8 +64,8 @@ public class PromMapperFactory {
                     QueryHandler queryHandler = null;
                     if (clazz == InstantQuery.class) {
                         queryHandler = instantQueryHandler;
-                    }  else if (clazz == RangeQuery.class) {
-                        throw new UnsupportedOperationException("RangeQuery is not implemented yet");
+                    } else if (clazz == RangeQuery.class) {
+                        queryHandler = rangeQueryHandler;
                     } else {
                         throw new IllegalArgumentException("Unsupported query annotation: " + clazz);
                     }

@@ -20,11 +20,11 @@ public abstract class QueryHandler {
     private final static DefaultConversionService conversion = new DefaultConversionService();
 
     private static final String RES = """
-            {
-              "status": "success",
-              "data": {
-                "resultType": "vector",
-                "result": [
+{
+    "status": "success",
+    "data": {
+        "resultType": "matrix",
+        "result": [
             {
                 "metric": {
                     "__name__": "up",
@@ -35,31 +35,24 @@ public abstract class QueryHandler {
                     "job": "host",
                     "version": "v4"
                 },
-                "value": [
-                    1791058251.781,
-                    "1"
-                ]
-            },
-            {
-                "metric": {
-                    "__name__": "up",
-                    "host_ip": "10.1.0.7",
-                    "host_name": "vm-0-7-ubuntu",
-                    "instance": "192.168.218.215:9100",
-                    "job": "k8s-node"
-                },
-                "value": [
-                    1791058251.781,
-                    "1"
+                "values": [
+                    [
+                        1791793763,
+                        "1"
+                    ],
+                    [
+                        1791794063,
+                        "1"
+                    ]
                 ]
             }
-                ]
-              },
-              "stats": {
-                "seriesFetched": "1",
-                "executionTimeMsec": 6
-              }
-            }
+        ]
+    },
+    "stats": {
+        "seriesFetched": "1",
+        "executionTimeMsec": 11
+    }
+}
             """;
 
     /**
@@ -94,21 +87,26 @@ public abstract class QueryHandler {
      */
     public abstract List<?> map(HandlerContext context, JSONObject data);
 
+    /**
+     * 提取属性及其注解
+     * @param mapperType
+     * @param method
+     * @return
+     */
     protected List<HandlerContext.FieldInfo> extractFieldInfo(Class<?> mapperType, Method method) {
         Class<?> dtoType = extractResType(mapperType, method);
         List<HandlerContext.FieldInfo> res = new ArrayList<>();
         Set<String> names = new HashSet<>();
         // 子类的同名字段优先，跳过静态字段和编译器生成的字段。
-        // todo：这里要做缓存
         for (Class<?> type = dtoType; type != Object.class; type = type.getSuperclass()) {
             for (Field field : type.getDeclaredFields()) {
                 if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()
                         || !names.add(field.getName())) {
                     continue;
                 }
+                field.setAccessible(true);
                 HandlerContext.FieldInfo fieldInfo = new HandlerContext.FieldInfo();
                 fieldInfo.setField(field);
-
                 PromValue annotation = field.getAnnotation(PromValue.class);
                 if (annotation != null) {
                     fieldInfo.setKey(annotation.value());

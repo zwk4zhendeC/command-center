@@ -16,6 +16,7 @@ import java.util.Map;
 
 @Component
 public class InstantQueryHandler extends QueryHandler {
+
     private Map<Method, HandlerContext> contextMap = new HashMap<>();
 
     @Override
@@ -91,7 +92,7 @@ public class InstantQueryHandler extends QueryHandler {
         }
         List<HandlerContext.FieldInfo> fieldInfos = context.getFieldInfos();
         for (HandlerContext.FieldInfo fieldInfo : fieldInfos) {
-            Object fieldValue;
+            Object fieldValue = null;
             Field field = fieldInfo.getField();
             try {
                 switch (fieldInfo.getValueType()) {
@@ -112,20 +113,15 @@ public class InstantQueryHandler extends QueryHandler {
                     }
                     case TIMESTAMP -> fieldValue = convert(sample.get(0), field.getType());
                     case VALUE -> fieldValue = convert(value, field.getType());
-                    case MATRICES -> {
-                        continue;
-                    }
                     case SAMPLE -> {
                         SampleValue point = new SampleValue();
                         point.setTimestamp(timestamp);
                         point.setValue(value);
                         fieldValue = point;
                     }
-                    default -> throw fieldError(field, "Unsupported instant field source", null);
                 }
                 //todo：这里需要改为获取set方法，而不是执行反射操作
-                field.setAccessible(true);
-                field.set(dto, fieldValue);
+                if (fieldValue != null) field.set(dto, fieldValue);
             } catch (RuntimeException | IllegalAccessException ex) {
                 throw fieldError(field, "Cannot fill field: " + ex.getMessage(), ex);
             }
