@@ -6,8 +6,8 @@ import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.http.HttpRequest;
 
+import java.net.http.HttpRequest;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -19,44 +19,14 @@ public abstract class QueryHandler {
     private final static Pattern PLACEHOLDER = Pattern.compile("([#$])\\{([^{}]+)}");
     private final static DefaultConversionService conversion = new DefaultConversionService();
 
-    private static final String RES = """
-{
-    "status": "success",
-    "data": {
-        "resultType": "matrix",
-        "result": [
-            {
-                "metric": {
-                    "__name__": "up",
-                    "asset_type": "host",
-                    "host_ip": "172.16.0.3",
-                    "host_name": "lavm-3tm34xa6s4",
-                    "instance": "node-exporter:9100",
-                    "job": "host",
-                    "version": "v4"
-                },
-                "values": [
-                    [
-                        1791793763,
-                        "1"
-                    ],
-                    [
-                        1791794063,
-                        "1"
-                    ]
-                ]
-            }
-        ]
-    },
-    "stats": {
-        "seriesFetched": "1",
-        "executionTimeMsec": 11
+    private final PrometheusClient prometheusClient;
+
+    protected QueryHandler(PrometheusClient prometheusClient) {
+        this.prometheusClient = prometheusClient;
     }
-}
-            """;
 
     /**
-     * 构建请求体，不过还没有想清楚返回什么
+     * 根据 Mapper 方法和实参构建 Prometheus GET 请求。
      */
     public abstract HttpRequest buildHttpQuery(HandlerContext context, Object[] args);
 
@@ -69,13 +39,33 @@ public abstract class QueryHandler {
     public List<?> invocation(Class<?> mapperType, Method method, Object[] args) {
         HandlerContext context = buildContext(mapperType, method);
         HttpRequest httpRequest = buildHttpQuery(context, args);
-        /**
-         * 1. 发送请求
-         * 2. 处理响应的status
-         * 3. 提取data，调用map将响应中data的数据映射成返回结果
-         */
-        JSONObject jsonObject = JSONObject.parseObject(RES);
-        return map(context, jsonObject.getJSONObject("data"));
+        String responseBody = prometheusClient.send(httpRequest);
+
+        JSONObject response;
+        try {
+            response = JSONObject.parseObject(responseBody);
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("Prometheus returned invalid JSON", ex);
+        }
+        if (response == null) {
+            throw new IllegalArgumentException("Prometheus returned an empty response");
+        }
+        if (!"success".equals(response.getString("status"))) {
+            String errorType = response.getString("errorType");
+            String error = response.getString("error");
+            throw new IllegalStateException("Prometheus query failed"
+                    + (errorType == null ? "" : " [" + errorType + "]")
+                    + (error == null ? "" : ": " + error));
+        }
+        JSONObject data = response.getJSONObject("data");
+        if (data == null) {
+            throw new IllegalArgumentException("Prometheus response does not contain a data object");
+        }
+        return map(context, data);
+    }
+
+    protected HttpRequest buildGetRequest(String apiPath, Map<String, String> queryParameters) {
+        return prometheusClient.buildGet(apiPath, queryParameters);
     }
 
     public abstract HandlerContext buildContext(Class<?> mapperType, Method method);
@@ -261,6 +251,13 @@ public abstract class QueryHandler {
     protected String quote(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"")
                 .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "\"";
+    }
+
+    protected void putRenderedIfPresent(Map<String, String> target, String name,
+                                        String template, Map<String, Object> parameters) {
+        if (template != null && !template.isBlank()) {
+            target.put(name, render(template, parameters));
+        }
     }
 
     /**

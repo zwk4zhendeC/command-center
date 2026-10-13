@@ -22,8 +22,6 @@ prometheus-query要做什么：
 up{host_name="node-1",host_ip="172.16.0.3"}
 ```
 
-InstantResultMapper map方法接收的应该是JSON中的Data字段，其他字段在上层处理。
-
 先不实际查询,我在PromMapperFactory中提供了一个RES变量作为返回值
 ### 支持的查询
 #### 即时查询

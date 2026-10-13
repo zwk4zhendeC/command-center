@@ -8,7 +8,7 @@ public class Main {
         s.print();
         Method setF = F.class.getMethod("setA", null);
         Method setS = S.class.getMethod("setA", null);
-        System.out.println(setF.equals(setS));
+        System.out.println(setF.equals(setS));  //false
         setF.invoke(s);
         s.print();
     }

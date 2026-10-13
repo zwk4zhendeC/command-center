@@ -7,7 +7,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** 范围查询模板；start/end/step 预留为请求参数，当前只输出 PromQL。 */
+/** 范围查询模板；调用时向 Prometheus {@code /query_range} 端点发送 GET 请求。 */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RangeQuery {
@@ -18,12 +18,12 @@ public @interface RangeQuery {
     @AliasFor("value")
     String promql() default "";
 
-    /** 范围查询起始时间表达式。 */
+    /** 范围查询 start 参数模板；为空时不发送该参数。 */
     String start() default "";
 
-    /** 范围查询结束时间表达式。 */
+    /** 范围查询 end 参数模板；为空时不发送该参数。 */
     String end() default "";
 
-    /** 查询步长表达式。 */
+    /** 查询 step 参数模板；为空时不发送该参数。 */
     String step() default "";
 }

@@ -4,14 +4,15 @@ import cn.demo.common.utils.StringUtils;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.http.HttpRequest;
 import org.springframework.stereotype.Component;
 
+import java.net.http.HttpRequest;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,10 +26,23 @@ import static cn.demo.common.utils.prometheus.ValueType.MATRICES;
 public class RangeQueryHandler extends QueryHandler {
 
     private final Map<Method, HandlerContext> contextMap = new ConcurrentHashMap<>();
+    private static final String API_PREFIX = "/query_range";
+
+    public RangeQueryHandler(PrometheusClient prometheusClient) {
+        super(prometheusClient);
+    }
 
     @Override
     public HttpRequest buildHttpQuery(HandlerContext context, Object[] args) {
-        return null;
+        Map<String, Object> methodParameters = parameters(context.getMethod(), args);
+        RangeQuery query = (RangeQuery) context.getAnnotation();
+
+        Map<String, String> queryParameters = new LinkedHashMap<>();
+        queryParameters.put("query", render(query.promql(), methodParameters));
+        putRenderedIfPresent(queryParameters, "start", query.start(), methodParameters);
+        putRenderedIfPresent(queryParameters, "end", query.end(), methodParameters);
+        putRenderedIfPresent(queryParameters, "step", query.step(), methodParameters);
+        return buildGetRequest(API_PREFIX, queryParameters);
     }
 
     @Override

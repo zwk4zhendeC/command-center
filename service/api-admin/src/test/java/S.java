@@ -7,8 +7,8 @@ public class S extends F {
         System.out.println(a);
     }
 
-//    public void setA() {
-//        a = "setS";
-//    }
+    public void setA() {
+        a = "setS";
+    }
 
 }

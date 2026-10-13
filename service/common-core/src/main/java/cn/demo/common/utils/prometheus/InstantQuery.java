@@ -7,7 +7,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** 即时查询模板；{@link #time()} 预留为查询时间参数，当前预览阶段不执行请求。 */
+/** 即时查询模板；调用时向 Prometheus {@code /query} 端点发送 GET 请求。 */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface InstantQuery {
@@ -18,6 +18,6 @@ public @interface InstantQuery {
     @AliasFor("value")
     String promql() default "";
 
-    /** Prometheus 即时查询的时间参数，后续请求阶段使用。 */
+    /** Prometheus 即时查询的 time 参数模板；为空时不发送该参数。 */
     String time() default "";
 }

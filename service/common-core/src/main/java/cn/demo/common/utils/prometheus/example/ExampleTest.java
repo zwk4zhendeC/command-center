@@ -14,10 +14,10 @@ public class ExampleTest {
 
     @PostConstruct
     public void init() {
-//        List<SingleRes> res1 = prometheusExample.up(new Query("host1", "1.1.1.1"), "123");
+        List<SingleRes> res1 = prometheusExample.up(new Query("host1", "1.1.1.1"), "123");
 //        System.out.println("res:"+res1);
-        List<RangeRes> memory = prometheusExample.memory(new ExampleRangeQuery("host1", "2026-10-03T20:10:51.781Z", "2026-10-04T20:10:51.781Z"));
-        System.out.println(memory);
+//        List<RangeRes> memory = prometheusExample.memory(new ExampleRangeQuery("lavm-3tm34xa6s4", "2026-10-03T20:10:51.781Z", "2026-10-04T20:10:51.781Z"));
+//        System.out.println(memory);
 //        RangeRes test = prometheusExample.test();
     }
 }

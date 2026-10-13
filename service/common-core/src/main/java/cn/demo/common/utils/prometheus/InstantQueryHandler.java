@@ -4,13 +4,14 @@ import cn.demo.common.utils.StringUtils;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.http.HttpRequest;
 import org.springframework.stereotype.Component;
 
+import java.net.http.HttpRequest;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,10 +19,21 @@ import java.util.Map;
 public class InstantQueryHandler extends QueryHandler {
 
     private Map<Method, HandlerContext> contextMap = new HashMap<>();
+    private static final String API_PREFIX = "/query";
+
+    public InstantQueryHandler(PrometheusClient prometheusClient) {
+        super(prometheusClient);
+    }
 
     @Override
     public HttpRequest buildHttpQuery(HandlerContext context, Object[] args) {
-        return null;
+        Map<String, Object> methodParameters = parameters(context.getMethod(), args);
+        InstantQuery query = (InstantQuery) context.getAnnotation();
+
+        Map<String, String> queryParameters = new LinkedHashMap<>();
+        queryParameters.put("query", render(query.promql(), methodParameters));
+        putRenderedIfPresent(queryParameters, "time", query.time(), methodParameters);
+        return buildGetRequest(API_PREFIX, queryParameters);
     }
 
     @Override
