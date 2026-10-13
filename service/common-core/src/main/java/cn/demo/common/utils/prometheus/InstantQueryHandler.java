@@ -21,8 +21,8 @@ public class InstantQueryHandler extends QueryHandler {
     private Map<Method, HandlerContext> contextMap = new HashMap<>();
     private static final String API_PREFIX = "/query";
 
-    public InstantQueryHandler(PrometheusClient prometheusClient) {
-        super(prometheusClient);
+    public InstantQueryHandler(PrometheusClient prometheusClient, PromqlTemplateRenderer templateRenderer) {
+        super(prometheusClient, templateRenderer);
     }
 
     @Override
@@ -31,8 +31,8 @@ public class InstantQueryHandler extends QueryHandler {
         InstantQuery query = (InstantQuery) context.getAnnotation();
 
         Map<String, String> queryParameters = new LinkedHashMap<>();
-        queryParameters.put("query", render(query.promql(), methodParameters));
-        putRenderedIfPresent(queryParameters, "time", query.time(), methodParameters);
+        queryParameters.put("query", renderPromQL(context, "promql", query.promql(), methodParameters));
+        putRenderedIfPresent(context, queryParameters, "time", query.time(), methodParameters);
         return buildGetRequest(API_PREFIX, queryParameters);
     }
 

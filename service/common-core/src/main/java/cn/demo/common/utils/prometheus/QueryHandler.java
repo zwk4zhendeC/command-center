@@ -1,8 +1,8 @@
 package cn.demo.common.utils.prometheus;
 
 import com.alibaba.fastjson2.JSONObject;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.PropertyAccessorFactory;
+import lombok.Data;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.support.DefaultConversionService;
@@ -10,19 +10,20 @@ import org.springframework.core.convert.support.DefaultConversionService;
 import java.net.http.HttpRequest;
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+@Log4j2
 public abstract class QueryHandler {
 
-    //    public abstract List<?>
-    private final static Pattern PLACEHOLDER = Pattern.compile("([#$])\\{([^{}]+)}");
+
     private final static DefaultConversionService conversion = new DefaultConversionService();
 
     private final PrometheusClient prometheusClient;
 
-    protected QueryHandler(PrometheusClient prometheusClient) {
+    private final PromqlTemplateRenderer templateRenderer;
+
+    protected QueryHandler(PrometheusClient prometheusClient, PromqlTemplateRenderer templateRenderer) {
         this.prometheusClient = prometheusClient;
+        this.templateRenderer = templateRenderer;
     }
 
     /**
@@ -65,6 +66,7 @@ public abstract class QueryHandler {
     }
 
     protected HttpRequest buildGetRequest(String apiPath, Map<String, String> queryParameters) {
+        log.info("apiPath:{},args:{}", apiPath, queryParameters);
         return prometheusClient.buildGet(apiPath, queryParameters);
     }
 
@@ -79,6 +81,7 @@ public abstract class QueryHandler {
 
     /**
      * 提取属性及其注解
+     *
      * @param mapperType
      * @param method
      * @return
@@ -197,66 +200,29 @@ public abstract class QueryHandler {
 
 
     /**
-     * #{...} 是 PromQL 字符串字面量，${...} 是原始文本；空值渲染为空字符串。
+     * 只渲染promql，策略时渲染不存在引用时，报错
      */
-    protected String render(String template, Map<String, Object> parameters) {
-        Matcher matcher = PLACEHOLDER.matcher(template);
-        StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
-            Object value = resolve(matcher.group(2).trim(), parameters);
-            String text = value == null ? "" : String.valueOf(value);
-            String replacement = "#".equals(matcher.group(1)) ? quote(text) : text;
-            // 参数里的 $ 和反斜杠只作为文本，不再被正则替换解释。
-            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(result);
-        return result.toString();
+    protected String renderPromQL(HandlerContext context, String attribute, String template,
+                                  Map<String, Object> parameters) {
+        return templateRenderer.renderPromQL(context.getMethod(), attribute, template, parameters);
     }
 
     /**
-     * 按点号读取 @Param 根参数及其 JavaBean 属性或 Map 键。
+     * 渲染其他例如step之类的参数，策略是引用不存在时渲染空
      */
-    protected Object resolve(String path, Map<String, Object> parameters) {
-        String[] segments = path.split("\\.", -1);
-        if (!parameters.containsKey(segments[0])) {
-            throw new IllegalArgumentException("Unknown PromQL parameter: " + path);
-        }
-        Object value = parameters.get(segments[0]);
-        for (int i = 1; i < segments.length; i++) {
-            if (segments[i].isBlank()) {
-                throw new IllegalArgumentException("Invalid PromQL property path: " + path);
-            }
-            if (value == null) {
-                return null;
-            }
-            if (value instanceof Map<?, ?> map) {
-                if (!map.containsKey(segments[i])) {
-                    throw new IllegalArgumentException("Unknown PromQL map key: " + path);
-                }
-                value = map.get(segments[i]);
-            } else {
-                BeanWrapper bean = PropertyAccessorFactory.forBeanPropertyAccess(value);
-                if (!bean.isReadableProperty(segments[i])) {
-                    throw new IllegalArgumentException("Unreadable PromQL property: " + path);
-                }
-                value = bean.getPropertyValue(segments[i]);
-            }
-        }
-        return value;
+    protected String renderPromArgs(HandlerContext context, String attribute, String template,
+                                    Map<String, Object> parameters) {
+        return templateRenderer.renderPromQL(context.getMethod(), attribute, template, parameters);
     }
+
 
     /**
-     * 将参数转成 PromQL 字符串字面量，并转义特殊字符。
+     * 未配置的可选请求参数不发送；配置后使用同一套 Pebble 语法渲染。
      */
-    protected String quote(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "\"";
-    }
-
-    protected void putRenderedIfPresent(Map<String, String> target, String name,
-                                        String template, Map<String, Object> parameters) {
+    protected void putRenderedIfPresent(HandlerContext context, Map<String, String> target,
+                                        String name, String template, Map<String, Object> parameters) {
         if (template != null && !template.isBlank()) {
-            target.put(name, render(template, parameters));
+            target.put(name, renderPromArgs(context, name, template, parameters));
         }
     }
 

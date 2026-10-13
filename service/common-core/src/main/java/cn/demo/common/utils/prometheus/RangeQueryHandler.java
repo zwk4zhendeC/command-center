@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static cn.demo.common.utils.prometheus.ValueType.MATRICES;
-
 /**
  * 将 Prometheus 范围查询返回的 matrix 数据映射为 Mapper 方法声明的 DTO 列表。
  */
@@ -28,8 +26,8 @@ public class RangeQueryHandler extends QueryHandler {
     private final Map<Method, HandlerContext> contextMap = new ConcurrentHashMap<>();
     private static final String API_PREFIX = "/query_range";
 
-    public RangeQueryHandler(PrometheusClient prometheusClient) {
-        super(prometheusClient);
+    public RangeQueryHandler(PrometheusClient prometheusClient, PromqlTemplateRenderer templateRenderer) {
+        super(prometheusClient, templateRenderer);
     }
 
     @Override
@@ -38,10 +36,10 @@ public class RangeQueryHandler extends QueryHandler {
         RangeQuery query = (RangeQuery) context.getAnnotation();
 
         Map<String, String> queryParameters = new LinkedHashMap<>();
-        queryParameters.put("query", render(query.promql(), methodParameters));
-        putRenderedIfPresent(queryParameters, "start", query.start(), methodParameters);
-        putRenderedIfPresent(queryParameters, "end", query.end(), methodParameters);
-        putRenderedIfPresent(queryParameters, "step", query.step(), methodParameters);
+        queryParameters.put("query", renderPromQL(context, "promql", query.promql(), methodParameters));
+        putRenderedIfPresent(context, queryParameters, "start", query.start(), methodParameters);
+        putRenderedIfPresent(context, queryParameters, "end", query.end(), methodParameters);
+        putRenderedIfPresent(context, queryParameters, "step", query.step(), methodParameters);
         return buildGetRequest(API_PREFIX, queryParameters);
     }
 

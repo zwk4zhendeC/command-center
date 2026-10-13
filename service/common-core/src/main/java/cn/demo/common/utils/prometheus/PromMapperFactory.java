@@ -1,8 +1,5 @@
 package cn.demo.common.utils.prometheus;
 
-import jakarta.annotation.Resource;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
@@ -10,24 +7,17 @@ import org.springframework.stereotype.Component;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 创建 Prometheus Mapper 接口的 JDK 动态代理。
  *
- * <p>代理输出 PromQL，并将模拟响应 RES 映射为即时查询结果；后续再接入 HTTP 客户端。</p>
+ * <p>根据查询注解选择处理器，渲染 Pebble 模板、发送 HTTP 请求并映射返回结果。</p>
  */
 @Component
 public class PromMapperFactory {
-
-    private static final Pattern PLACEHOLDER = Pattern.compile("([#$])\\{([^{}]+)}");
 
     @Autowired
     private InstantQueryHandler instantQueryHandler;

@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PromQL {
-    /** PromQL 模板，支持 #{参数} 和 ${参数} 占位符。 */
+    /** Pebble PromQL 模板；使用 {{ 参数 }}，字符串外层双引号需在模板中添加。 */
     @AliasFor("promql")
     String value() default "";
 

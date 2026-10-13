@@ -22,6 +22,7 @@
         <yauaa.version>8.1.0</yauaa.version>
         <kaptcha.version>2.3.3</kaptcha.version>
         <pagehelper.boot.version>2.1.1</pagehelper.boot.version>
+        <pebble.version>4.1.2</pebble.version>
         <fastjson.version>2.0.61</fastjson.version>
         <oshi.version>6.10.0</oshi.version>
         <commons.io.version>2.21.0</commons.io.version>
@@ -37,6 +38,11 @@
     <!-- 依赖声明 -->
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.pebbletemplates</groupId>
+                <artifactId>pebble</artifactId>
+                <version>${pebble.version}</version>
+            </dependency>
 
             <!-- SpringBoot的依赖配置-->
             <dependency>

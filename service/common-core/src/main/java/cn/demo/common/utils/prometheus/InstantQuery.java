@@ -11,13 +11,13 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface InstantQuery {
-    /** PromQL 模板，支持 #{参数} 和 ${参数} 占位符。 */
+    /** Pebble PromQL 模板；使用 {{ 参数 }}，字符串外层双引号需在模板中添加。 */
     @AliasFor("promql")
     String value() default "";
 
     @AliasFor("value")
     String promql() default "";
 
-    /** Prometheus 即时查询的 time 参数模板；为空时不发送该参数。 */
+    /** Prometheus 即时查询的 time 参数的 Pebble 模板；为空时不发送该参数。 */
     String time() default "";
 }

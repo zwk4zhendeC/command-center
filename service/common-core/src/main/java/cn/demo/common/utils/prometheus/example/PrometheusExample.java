@@ -13,25 +13,47 @@ import java.util.List;
 @PrometheusMapper
 public interface PrometheusExample {
 
-    @InstantQuery(value = "up{host_name=#{query.hostName},host_ip=#{query.hostIp}}", time = "${time}")
+    @InstantQuery(value = """
+            up{
+                {% if query.hostName is not empty %}
+                    host_name="{{ query.hostName }}",
+                {% endif %}
+                {% if query.hostIp is not empty %}
+                    host_ip="{{ query.hostIp }}",
+                {% endif %}
+            }
+            """
+            , time = "{{ time }}")
     List<SingleRes> up(@Param("query") Query query, @Param("time") String time);
 
 
-    @InstantQuery(value = "up{host_name=#{query.hostName},host_ip=#{query.hostIp}}", time = "${time}")
-    List<SingleRes2> up2(@Param("query") Query query, @Param("time") String time);
-
     @RangeQuery(value = """
               ( 1 - (
-                node_memory_MemAvailable_bytes{host_name=#{query.hostName}}
-                / node_memory_MemTotal_bytes{host_name=#{query.hostName}}
+                node_memory_MemAvailable_bytes{host_name="{{ query.hostName }}"}
+                / node_memory_MemTotal_bytes{host_name="{{ query.hostName }}"}
               )) * 100
-            """, start = "${query.start}", end = "${query.end}")
+            """, start = "{{ query.start }}", end = "{{ query.end }}")
     List<RangeRes> memory(@Param("query") ExampleRangeQuery query);
 
-//
-//    @RangeQuery("""
-//              ( 1 - (
-//              )) * 100
-//            """)
-//    RangeRes test();
+    /**
+     * 可选主机名：null、空字符串或空白字符串时省略标签条件。
+     */
+    @InstantQuery("""
+            up{
+            {% if hostName is not empty %}
+                host_name="{{ hostName }}"
+            {% endif %}
+            }
+            """)
+    List<SingleRes> upOptional(@Param("hostName") String hostName);
+
+    /**
+     * 循环构建多个查询分支，每个主机名按 PromQL 字符串内容转义。
+     */
+    @InstantQuery("""
+            {% for hostName in hostNames %}
+            up{host_name="{{ hostName }}"}{% if not loop.last %} or {% endif %}
+            {% else %}vector(0){% endfor %}
+            """)
+    List<SingleRes> upForHosts(@Param("hostNames") List<String> hostNames);
 }

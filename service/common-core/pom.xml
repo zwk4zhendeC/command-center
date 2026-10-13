@@ -16,6 +16,12 @@
     </description>
 
     <dependencies>
+        <!-- PromQL 条件、循环及变量模板 -->
+        <dependency>
+            <groupId>io.pebbletemplates</groupId>
+            <artifactId>pebble</artifactId>
+        </dependency>
+
         <!-- Spring框架基本的核心工具 -->
         <dependency>
             <groupId>org.springframework</groupId>

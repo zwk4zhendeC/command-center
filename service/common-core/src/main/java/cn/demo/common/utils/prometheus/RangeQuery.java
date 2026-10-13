@@ -11,19 +11,19 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RangeQuery {
-    /** PromQL 模板，支持 #{参数} 和 ${参数} 占位符。 */
+    /** Pebble PromQL 模板；使用 {{ 参数 }}，字符串外层双引号需在模板中添加。 */
     @AliasFor("promql")
     String value() default "";
 
     @AliasFor("value")
     String promql() default "";
 
-    /** 范围查询 start 参数模板；为空时不发送该参数。 */
+    /** 范围查询 start 参数的 Pebble 模板；为空时不发送该参数。 */
     String start() default "";
 
-    /** 范围查询 end 参数模板；为空时不发送该参数。 */
+    /** 范围查询 end 参数的 Pebble 模板；为空时不发送该参数。 */
     String end() default "";
 
-    /** 查询 step 参数模板；为空时不发送该参数。 */
+    /** 查询 step 参数的 Pebble 模板；为空时不发送该参数。 */
     String step() default "";
 }
